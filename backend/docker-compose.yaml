@@ -1,31 +1,43 @@
 version: '3'
 services:
-  postgres:
-    image: postgres:16
+  mysql:
+    image: mysql:8.0
     environment:
-      POSTGRES_USER: mohamed
-      POSTGRES_PASSWORD: Ahmedcar566
-      POSTGRES_DB: vidflow
+      MYSQL_USER: mohamed
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: vidflow
+      MYSQL_ROOT_PASSWORD: password
     volumes:
-      - pgdata:/var/lib/postgresql/data:rw
+      - mysql_data:/var/lib/mysql
     ports:
-      - "5432:5432"
+      - "3306:3306"
   minio:
     image: minio/minio
-    environment:
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: minio123
-    volumes:
-      - minio-data:/data:rw
+    container_name: minio
+    restart: unless-stopped
     ports:
-      - "9000:9000"
-    command: server /data
-    entrypoint: |
-      /usr/bin/minio server /data &&
-      /usr/bin/mc mb minio/videos
+      - "9000:9000"  # S3 API
+      - "9001:9001"  # Web UI
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  create-bucket:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/default-bucket;
+      exit 0;
+      "
 
 
 volumes:
-  pgdata:
-  minio-data:
+  mysql_data:
+  minio_data:
 
