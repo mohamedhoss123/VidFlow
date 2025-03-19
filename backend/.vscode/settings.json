@@ -1,19 +1,3 @@
 {
-    "dbcode.connections": [
-        {
-            "connectionId": "Snx30Xbql8InUgSvKg4Lz",
-            "name": "vidflow",
-            "driver": "postgres",
-            "connectionType": "host",
-            "host": "localhost",
-            "port": 5432,
-            "ssl": false,
-            "username": "mohamed",
-            "password": "",
-            "savePassword": "secretStorage",
-            "database": "vidflow",
-            "readOnly": false,
-            "connectionTimeout": 30
-        }
-    ]
+    "dbcode.connections": []
 }
