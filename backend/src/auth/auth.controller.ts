@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
+  Headers,
   Param,
   Patch,
   Post,
@@ -11,6 +13,7 @@ import {
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
+import { Token } from './decorator/token.decorator';
 
 
 @Controller('auths')
@@ -30,7 +33,17 @@ export class AuthController {
   async refreshToken(@Body('refreshToken') refreshToken: string) {
     const payload = this.authService.verifyRefreshToken(refreshToken);
     return this.authService.generateToken({ sub: payload.sub, email: payload.email });
+  }
 
+  @Get('validate')
+  async validate(@Token() authorization: string) {
+    console.log(authorization); 
+    const token = authorization.split(' ')[1];
+    const payload = this.authService.verifyRefreshToken(token);
+    if (!payload) {
+      throw new UnauthorizedException();
+    }
+    return { valid: true };
   }
 
 }

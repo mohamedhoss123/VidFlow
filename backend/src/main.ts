@@ -10,7 +10,7 @@ async function bootstrap() {
   .setTitle('API Documentation')
   .setDescription('NestJS API with Swagger')
   .setVersion('1.0')
-  .addBearerAuth() // Adds JWT Authentication (optional)
+  .addBearerAuth({name: 'JWT', description: 'Enter   token', scheme: 'bearer', type: 'http', in: 'header'}) // Adds JWT Authentication (optional)
   .build();
   const app = await NestFactory.create(AppModule);
 
