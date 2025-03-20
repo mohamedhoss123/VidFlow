@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -26,9 +27,13 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refresh() {
-    const user = await this.authService.getUserByEmail(createUserDto.email);
-    return {token: this.authService.generateToken(user),refresh:this.authService.generateRefreshToken({email:user.email})};
+  async refreshToken(@Body('refreshToken') refreshToken: string) {
+    try {
+      const payload = this.authService.verifyRefreshToken(refreshToken);
+      return this.authService.generateToken({ sub: payload.sub, email: payload.email });
+    } catch (e) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 
 }

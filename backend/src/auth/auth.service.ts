@@ -14,7 +14,9 @@ export class AuthService {
   generateRefreshToken(payload: object) {
     return this.jwtService.sign(payload,{expiresIn:"7d"});
   }
-  
+  verifyRefreshToken(token: string) {
+    return this.jwtService.verify(token);
+  }
   async createUser(createUserDto: CreateUserDto) {
     const user = await this.prismaService.user.create({
       data: {
