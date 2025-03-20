@@ -19,11 +19,13 @@ services:
       - "9000:9000"  # S3 API
       - "9001:9001"  # Web UI
     environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
     volumes:
-      - minio_data:/data
+      - minio_data:/datad
 
 
 volumes:

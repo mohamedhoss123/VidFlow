@@ -18,4 +18,15 @@ model User {
   email String  @unique
   name  String
   password String
+
+  Video Video[]
+}
+
+model Video{
+  id Int @id @default(autoincrement())
+  name String
+  user User @relation(fields: [id],references: [id])
+  url String
+  thumbnail_url String?
+  size Int
 }
