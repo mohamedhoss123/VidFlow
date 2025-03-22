@@ -26,7 +26,8 @@ model User {
 model Video{
   id Int @id @default(autoincrement())
   name String
-  user User @relation(fields: [id],references: [id])
+  user User @relation(fields: [userId],references: [id])
+  userId    Int
   url String
   thumbnail_url String?
   size Int

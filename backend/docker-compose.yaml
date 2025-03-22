@@ -16,8 +16,8 @@ services:
     container_name: minio
     restart: unless-stopped
     ports:
-      - "9000:9000"  # S3 API
-      - "9001:9001"  # Web UI
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web UI
     environment:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
@@ -26,15 +26,12 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
+  redis:
+    image: redis:6.0
+    container_name: redis
     ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: "admin"
-      RABBITMQ_DEFAULT_PASS: "password"
+      - "6379:6379"
+
 
 volumes:
   mysql_data:

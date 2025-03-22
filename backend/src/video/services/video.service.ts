@@ -11,7 +11,8 @@ export class VideoService {
             data: {
                 name: name,
                 url: url,
-                size: size
+                size: size,
+                userId:1
             }
         })
     }
@@ -57,8 +58,6 @@ export class VideoService {
                 userId:1 
             }
         })
-        console.log(gg)
-        console.log(data.ContentLength)
         if(data.Body)
             return data.Body
         else
