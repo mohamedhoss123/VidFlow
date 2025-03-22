@@ -11,7 +11,7 @@ export class FileUploadService {
         accessKeyId: this.configService.get("AWS_ACCESS_KEY")as string,
         secretAccessKey: this.configService.get("AWS_SECRET_KEY")as string,
       },
-      endpoint: this.configService.get("AWS_URL"),
+      endpoint: this.configService.get("AWS_ENDPOINT"),
       forcePathStyle: true,
     });
     
@@ -35,14 +35,15 @@ export class FileUploadService {
         stream.on("error", reject);
       });
     }
-    async getVideoStream(key: string) { 
+    async getVideo(key: string) { 
       const data = await this.client.send(
         new GetObjectCommand({
           Bucket: "files",
           Key: key,
         })
       );
-      return data.Body;
+  
+      return data;
     }
     
 }

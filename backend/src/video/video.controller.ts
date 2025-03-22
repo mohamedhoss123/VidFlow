@@ -31,14 +31,23 @@ export class VideoController {
     return await this.videoService.create(data.name,videoUrl,file.size)
 
   }
+  // @Get("/:id")
+  // async getVideo(@Param("id") id: string, @Res() res: any) {
+  //   const videoPath = (await this.videoService.optomizeFile(id));
+  //   const videoStream = fs.createReadStream(videoPath)
+  //   const stats = await fs.promises.stat(videoPath);
+  //   console.log(`Video length: ${stats.size} bytes`)
+  //   videoStream.on("end", () => {
+  //     fs.unlinkSync(videoPath);
+  //   })
+  //   res.setHeader('Content-Type', 'video/mp4');
+  //   videoStream.pipe(res);
+  // }
   @Get("/:id")
   async getVideo(@Param("id") id: string, @Res() res: any) {
-    const videoPath = await this.videoService.optomizeFile(id);
-    const videoStream = fs.createReadStream(videoPath)
-    videoStream.on("end", () => {
-      fs.unlinkSync(videoPath);
-    })
-    res.setHeader('Content-Type', 'video/mp4');
+
+    const videoStream = await this.videoService.getVideoStream(id) as Stream
+  
     videoStream.pipe(res);
   }
 }

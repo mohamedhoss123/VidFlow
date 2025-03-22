@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileUploadService } from './file-upload.service';
 import { spawn } from "child_process";
@@ -17,7 +17,7 @@ export class VideoService {
     }
 
     async optomizeFile(videoId: string) {
-        const inputStream = await this.fileUploadService.getVideoStream(videoId);
+        const inputStream = (await this.fileUploadService.getVideo(videoId)).Body;
         const input = await this.fileUploadService.streamToString(inputStream);
         console.log(input)
         const tempInputFilePath = "./temp_input";
@@ -36,7 +36,7 @@ export class VideoService {
             ffmpegProcess.on("close", (code) => {
      
                 if (code === 0) {
-                    console.log("vvsaw")
+                    fs.unlinkSync(tempInputFilePath);
                     resolve("./optimized-" + videoId + ".mp4");
                 } else {
                     reject(new Error(`FFmpeg process exited with code ${code}`));
@@ -47,6 +47,22 @@ export class VideoService {
                 reject(err);
             });
         });
+    }
+
+    async getVideoStream(videoId:string){
+        const data = await this.fileUploadService.getVideo(videoId)
+        const gg = await this .prismaService.userBandwidthSummary.create({
+            data: {
+                total: (data.ContentLength as number) / 1024,
+                userId:1 
+            }
+        })
+        console.log(gg)
+        console.log(data.ContentLength)
+        if(data.Body)
+            return data.Body
+        else
+            throw new BadRequestException()
     }
 
 }

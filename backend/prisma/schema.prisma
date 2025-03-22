@@ -20,6 +20,7 @@ model User {
   password String
 
   Video Video[]
+  UserBandwidthSummary UserBandwidthSummary[]
 }
 
 model Video{
@@ -29,4 +30,13 @@ model Video{
   url String
   thumbnail_url String?
   size Int
+}
+
+model UserBandwidthSummary {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation(fields: [userId], references: [id])
+  total     Int
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
 }
