@@ -16,7 +16,6 @@ import { UploadVideoDto } from './dto/upload-video.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes } from '@nestjs/swagger';
 import { FileUploadService } from './services/file-upload.service';
-import * as fs from "fs";
 import Stream from 'stream';
 
 @Controller('videos')

@@ -28,12 +28,12 @@ export class VideoService {
             "-i", tempInputFilePath,  // Input file
             "-c:v", "h264_nvenc",   // Encode video with H.264
             "-preset", "fast",
-            "-f", "mp4",         // Output format
-            "./optimized-" + videoId + ".mp4"  // Output file
+            "-hls_list_size", "0",  // No limit on number of segments
+            "-hls_segment_filename", `./video/${videoId}-%03d.tss`,  // Segment filename
+            "./video/optimized-" + videoId + ".m3u8"  // Output file
         ]);
 
         return new Promise<string>((resolve, reject) => {
-            console.log("enter")
             ffmpegProcess.on("close", (code) => {
      
                 if (code === 0) {
