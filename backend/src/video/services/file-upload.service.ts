@@ -6,7 +6,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 @Injectable()
 export class FileUploadService {
-    constructor(private readonly configService:ConfigService,@InjectQueue("video-queue")private videoQueue: Queue){}
+    constructor(private readonly configService:ConfigService){}
     private readonly client=new S3Client({
       region: "us-east-1",
       credentials: {
@@ -17,16 +17,14 @@ export class FileUploadService {
       forcePathStyle: true,
     });
     
-    async uploadFile(file: Express.Multer.File, filename: string) {
-      const key = `${uuidv4()}${file.originalname}`
+    async uploadFile(file: Buffer, key: string) {
       const data = await this.client.send(
         new PutObjectCommand({
           Bucket: "files",
           Key: key,
-          Body: file.buffer,
+          Body: file,
         })
       );
-      this.videoQueue.add("optomizeFile", { videoId: key })
       return key;
     }
 

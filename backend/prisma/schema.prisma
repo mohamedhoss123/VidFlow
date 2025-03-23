@@ -28,7 +28,8 @@ model Video{
   name String
   user User @relation(fields: [userId],references: [id])
   userId    Int
-  url String
+  url String?
+  status VideoStatus @default(PROCESSING)
   thumbnail_url String?
   size Int
 }
@@ -40,4 +41,10 @@ model UserBandwidthSummary {
   userId    Int
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
+}
+
+enum VideoStatus {
+  PROCESSING
+  READY
+  FAILED
 }
