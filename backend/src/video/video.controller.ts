@@ -1,10 +1,8 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
-  Patch,
   Post,
   Res,
   UploadedFile,
@@ -44,7 +42,10 @@ export class VideoController {
       videoUrl,
       file.size,
     );
-    this.videoQueue.add("optomizeFile", { videoId: videoUrl, id: video.id });
+    await this.videoQueue.add("optomizeFile", {
+      videoId: videoUrl,
+      id: video.id,
+    });
   }
   // @Get("/:id")
   // async getVideo(@Param("id") id: string, @Res() res: any) {

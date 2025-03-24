@@ -21,11 +21,14 @@ export class VideoService {
   }
 
   async optomizeFile(videoId: string) {
-    const inputStream = (await this.fileUploadService.getVideo(videoId)).Body;
-    const input = await this.fileUploadService.streamToBuffer(inputStream);
-    console.log(input);
+    const inputStream = (
+      await this.fileUploadService.getVideo(videoId)
+    ).Body?.transformToString();
+    if (!inputStream) {
+      throw new BadRequestException();
+    }
     const tempInputFilePath = "./temp_input";
-    fs.writeFileSync(tempInputFilePath, input);
+    fs.writeFileSync(tempInputFilePath, await inputStream);
 
     const ffmpegProcess = spawn("ffmpeg", [
       "-i",
@@ -59,7 +62,7 @@ export class VideoService {
 
   async getVideoStream(videoId: string) {
     const data = await this.fileUploadService.getVideo(videoId);
-    const gg = await this.prismaService.userBandwidthSummary.create({
+    await this.prismaService.userBandwidthSummary.create({
       data: {
         total: (data.ContentLength as number) / 1024,
         userId: 1,

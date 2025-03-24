@@ -24,8 +24,9 @@ export class AuthService {
   }
   verifyRefreshToken(token: string) {
     try {
-      return this.jwtService.verify(token);
-    } catch (e) {
+      return this.jwtService.verify<{ sub: string; email: string }>(token);
+    } catch (error: unknown) {
+      console.log(error);
       throw new UnauthorizedException("Invalid refresh token");
     }
   }

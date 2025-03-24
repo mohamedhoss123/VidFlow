@@ -19,21 +19,24 @@ export class VideoProcessorService extends WorkerHost {
   private readonly logger = new Logger(VideoProcessorService.name);
   async process(
     job: Job<{ videoId: string; id: number }>,
-    token?: string,
+    // token?: string,
   ): Promise<any> {
     const videoId = job.data.videoId;
     this.logger.log(`Processing video with ID: ${videoId}`);
     await this.videoService.optomizeFile(videoId);
-    fs.readdirSync("./video").forEach(async (file) => {
-      if (file.includes(videoId)) {
-        await this.fileUploadService.uploadFile(
-          fs.readFileSync("./video/" + file),
-          file,
-        );
+    const files = fs.readdirSync("./video");
+    await Promise.all(
+      files.map(async (file) => {
+        if (file.includes(videoId)) {
+          await this.fileUploadService.uploadFile(
+            fs.readFileSync("./video/" + file),
+            file,
+          );
 
-        fs.unlinkSync("./video/" + file);
-      }
-    });
+          fs.unlinkSync("./video/" + file);
+        }
+      }),
+    );
     await this.prismaService.video.update({
       where: { id: job.data.id },
       data: {

@@ -5,5 +5,5 @@ import { PrismaService } from "src/prisma/prisma.service";
 export class UserService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  update(id: number, updateUserDto: any) {}
+  // update(id: number, updateUserDto: any) {}
 }

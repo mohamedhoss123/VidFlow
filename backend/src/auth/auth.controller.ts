@@ -27,7 +27,7 @@ export class AuthController {
   }
 
   @Post("refresh")
-  async refreshToken(@Body("refreshToken") refreshToken: string) {
+  refreshToken(@Body("refreshToken") refreshToken: string) {
     const payload = this.authService.verifyRefreshToken(refreshToken);
     return this.authService.generateToken({
       sub: payload.sub,
@@ -36,7 +36,7 @@ export class AuthController {
   }
 
   @Get("validate")
-  async validate(@Token() authorization: string) {
+  validate(@Token() authorization: string) {
     console.log(authorization);
     const token = authorization.split(" ")[1];
     const payload = this.authService.verifyRefreshToken(token);
