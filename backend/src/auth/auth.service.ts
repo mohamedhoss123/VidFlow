@@ -1,12 +1,20 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "src/prisma/prisma.service";
+import { CreateUserDto } from "./dto/create-user.dto";
 import * as argon2 from "argon2";
-import { LoginUserDto } from './dto/login-user.dto';
+import { LoginUserDto } from "./dto/login-user.dto";
 @Injectable()
 export class AuthService {
-  constructor(private readonly jwtService: JwtService, private readonly prismaService: PrismaService) { }
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly prismaService: PrismaService,
+  ) {}
 
   generateToken(payload: object) {
     return this.jwtService.sign(payload);
@@ -18,7 +26,7 @@ export class AuthService {
     try {
       return this.jwtService.verify(token);
     } catch (e) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException("Invalid refresh token");
     }
   }
   async createUser(createUserDto: CreateUserDto) {
@@ -40,7 +48,6 @@ export class AuthService {
   }
 
   async validateUser(payload: LoginUserDto) {
-
     const user = await this.prismaService.user.findUnique({
       where: {
         email: payload.email,
@@ -49,12 +56,13 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException("User not found");
     }
-    const isPasswordValid = await argon2.verify(user.password, payload.password);
+    const isPasswordValid = await argon2.verify(
+      user.password,
+      payload.password,
+    );
     if (isPasswordValid) {
       return user;
     }
     throw new BadRequestException();
   }
-
 }
-
