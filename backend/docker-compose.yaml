@@ -16,8 +16,8 @@ services:
     container_name: minio
     restart: unless-stopped
     ports:
-      - "9000:9000"  # S3 API
-      - "9001:9001"  # Web UI
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web UI
     environment:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
@@ -25,7 +25,12 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
     volumes:
-      - minio_data:/datad
+      - minio_data:/data
+  redis:
+    image: redis:6.0
+    container_name: redis
+    ports:
+      - "6379:6379"
 
 
 volumes:
