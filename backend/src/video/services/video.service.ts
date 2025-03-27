@@ -101,4 +101,16 @@ export class VideoService {
     if (data.Body) return data.Body;
     else throw new BadRequestException();
   }
+
+  async getVideoInfo(videoId: number) {
+    const data = await this.prismaService.video.findUnique({
+      where: {
+        id: Number(videoId),
+      },
+      include: {
+        quality: true,
+      },
+    });
+    return data;
+  }
 }

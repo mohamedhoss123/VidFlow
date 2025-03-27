@@ -60,18 +60,10 @@ export class VideoController {
     });
     return video;
   }
-  // @Get("/:id")
-  // async getVideo(@Param("id") id: string, @Res() res: any) {
-  //   const videoPath = (await this.videoService.optomizeFile(id));
-  //   const videoStream = fs.createReadStream(videoPath)
-  //   const stats = await fs.promises.stat(videoPath);
-  //   console.log(`Video length: ${stats.size} bytes`)
-  //   videoStream.on("end", () => {
-  //     fs.unlinkSync(videoPath);
-  //   })
-  //   res.setHeader('Content-Type', 'video/mp4');
-  //   videoStream.pipe(res);
-  // }
+  @Get("/:id/info")
+  async videoInfo(@Param("id") id: number) {
+    return this.videoService.getVideoInfo(id);
+  }
   @Get("/:id")
   async getVideo(@Param("id") id: string, @Res() res: any) {
     const videoStream = (await this.videoService.getVideoStream(id)) as Stream;
