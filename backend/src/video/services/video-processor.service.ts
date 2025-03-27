@@ -6,6 +6,7 @@ import { VideoService } from "./video.service";
 import * as fs from "fs";
 import { PrismaService } from "src/prisma/prisma.service";
 import { VideoStatus } from "@prisma/client";
+import { VideoQualityEnum } from "../enums/video-quality.enum";
 
 @Processor("video-queue")
 export class VideoProcessorService extends WorkerHost {
@@ -18,12 +19,14 @@ export class VideoProcessorService extends WorkerHost {
   }
   private readonly logger = new Logger(VideoProcessorService.name);
   async process(
-    job: Job<{ videoId: string; id: number }>,
+    job: Job<{ videoId: string; id: number; resulution: VideoQualityEnum }>,
     // token?: string,
   ): Promise<any> {
     const videoId = job.data.videoId;
-    this.logger.log(`Processing video with ID: ${videoId}`);
-    await this.videoService.optomizeFile(videoId);
+    this.logger.log(
+      `Processing video with ID: ${videoId} res ${job.data.resulution}`,
+    );
+    await this.videoService.optomizeFile(videoId, job.data.resulution);
     const files = fs.readdirSync("./video");
     await Promise.all(
       files.map(async (file) => {
@@ -42,6 +45,13 @@ export class VideoProcessorService extends WorkerHost {
       data: {
         url: "optimized-" + job.data.videoId + ".m3u8",
         status: VideoStatus.READY,
+      },
+    });
+    await this.prismaService.videoQuality.create({
+      data: {
+        videoId: job.data.id,
+        quality: job.data.resulution,
+        url: "optimized-" + job.data.videoId + ".m3u8",
       },
     });
     this.logger.log(`Optimized video with ID: ${videoId}`);

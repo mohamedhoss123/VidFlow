@@ -17,6 +17,7 @@ import { FileUploadService } from "./services/file-upload.service";
 import Stream from "stream";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
+import { VideoQualityEnum } from "./enums/video-quality.enum";
 
 @Controller("videos")
 export class VideoController {
@@ -45,7 +46,19 @@ export class VideoController {
     await this.videoQueue.add("optomizeFile", {
       videoId: videoUrl,
       id: video.id,
+      resulution: VideoQualityEnum.P114,
     });
+    await this.videoQueue.add("optomizeFile", {
+      videoId: videoUrl,
+      id: video.id,
+      resulution: VideoQualityEnum.P360,
+    });
+    await this.videoQueue.add("optomizeFile", {
+      videoId: videoUrl,
+      id: video.id,
+      resulution: VideoQualityEnum.P720,
+    });
+    return video;
   }
   // @Get("/:id")
   // async getVideo(@Param("id") id: string, @Res() res: any) {

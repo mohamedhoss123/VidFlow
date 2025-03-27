@@ -32,6 +32,16 @@ model Video{
   status VideoStatus @default(PROCESSING)
   thumbnail_url String?
   size Int
+  quality VideoQuality[]
+}
+
+model VideoQuality{
+  id Int @id @default(autoincrement())
+  videoId Int
+  video Video @relation(fields: [videoId], references: [id])
+  quality String
+  url String
+
 }
 
 model UserBandwidthSummary {
