@@ -11,20 +11,27 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as VideoImport } from './routes/video'
 import { Route as IndexImport } from './routes/index'
+import { Route as VideoIndexImport } from './routes/video/index'
+import { Route as VideoUploadImport } from './routes/video/upload'
 
 // Create/Update Routes
-
-const VideoRoute = VideoImport.update({
-  id: '/video',
-  path: '/video',
-  getParentRoute: () => rootRoute,
-} as any)
 
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const VideoIndexRoute = VideoIndexImport.update({
+  id: '/video/',
+  path: '/video/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const VideoUploadRoute = VideoUploadImport.update({
+  id: '/video/upload',
+  path: '/video/upload',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -39,11 +46,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/video': {
-      id: '/video'
+    '/video/upload': {
+      id: '/video/upload'
+      path: '/video/upload'
+      fullPath: '/video/upload'
+      preLoaderRoute: typeof VideoUploadImport
+      parentRoute: typeof rootRoute
+    }
+    '/video/': {
+      id: '/video/'
       path: '/video'
       fullPath: '/video'
-      preLoaderRoute: typeof VideoImport
+      preLoaderRoute: typeof VideoIndexImport
       parentRoute: typeof rootRoute
     }
   }
@@ -53,37 +67,42 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/video': typeof VideoRoute
+  '/video/upload': typeof VideoUploadRoute
+  '/video': typeof VideoIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/video': typeof VideoRoute
+  '/video/upload': typeof VideoUploadRoute
+  '/video': typeof VideoIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/video': typeof VideoRoute
+  '/video/upload': typeof VideoUploadRoute
+  '/video/': typeof VideoIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/video'
+  fullPaths: '/' | '/video/upload' | '/video'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/video'
-  id: '__root__' | '/' | '/video'
+  to: '/' | '/video/upload' | '/video'
+  id: '__root__' | '/' | '/video/upload' | '/video/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  VideoRoute: typeof VideoRoute
+  VideoUploadRoute: typeof VideoUploadRoute
+  VideoIndexRoute: typeof VideoIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  VideoRoute: VideoRoute,
+  VideoUploadRoute: VideoUploadRoute,
+  VideoIndexRoute: VideoIndexRoute,
 }
 
 export const routeTree = rootRoute
@@ -97,14 +116,18 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/video"
+        "/video/upload",
+        "/video/"
       ]
     },
     "/": {
       "filePath": "index.tsx"
     },
-    "/video": {
-      "filePath": "video.tsx"
+    "/video/upload": {
+      "filePath": "video/upload.tsx"
+    },
+    "/video/": {
+      "filePath": "video/index.tsx"
     }
   }
 }
