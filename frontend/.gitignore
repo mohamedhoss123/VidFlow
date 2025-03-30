@@ -1,6 +1,5 @@
+node_modules
 .DS_Store
-/node_modules/
-
-# React Router
-/.react-router/
-/build/
+dist
+dist-ssr
+*.local
