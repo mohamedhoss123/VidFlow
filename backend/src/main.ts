@@ -18,10 +18,13 @@ async function bootstrap() {
       in: "header",
     }) // Adds JWT Authentication (optional)
     .build();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    cors: true,
+  });
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("docs", app, document);
   await app.listen(process.env.PORT ?? 3000);
 }
 void bootstrap();
+

@@ -1,6 +1,5 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
-import { Logger } from "@nestjs/common";
 import { FileUploadService } from "./file-upload.service";
 import { VideoService } from "./video.service";
 import * as fs from "fs";
@@ -17,15 +16,12 @@ export class VideoProcessorService extends WorkerHost {
   ) {
     super();
   }
-  private readonly logger = new Logger(VideoProcessorService.name);
   async process(
     job: Job<{ videoId: string; id: number; resulution: VideoQualityEnum }>,
     // token?: string,
   ): Promise<any> {
     const videoId = job.data.videoId;
-    this.logger.log(
-      `Processing video with ID: ${videoId} res ${job.data.resulution}`,
-    );
+    console.log(job.data);
     await this.videoService.optomizeFile(videoId, job.data.resulution);
     const files = fs.readdirSync("./video");
     await Promise.all(
@@ -54,7 +50,6 @@ export class VideoProcessorService extends WorkerHost {
         url: "optimized-" + job.data.videoId + ".m3u8",
       },
     });
-    this.logger.log(`Optimized video with ID: ${videoId}`);
     await job.updateProgress(100);
     return {};
   }
