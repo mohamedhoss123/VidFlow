@@ -29,7 +29,7 @@ export function Navbar() {
   const navLinks = [
     { href: "/", label: "Home", icon: Home },
     { href: "/video", label: "My Uploads", icon: FileText },
-    { href: "/upload", label: "Upload New", icon: Upload },
+    { href: "/video/upload", label: "Upload New", icon: Upload },
   ]
 
   return (

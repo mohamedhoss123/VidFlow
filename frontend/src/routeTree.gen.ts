@@ -11,11 +11,28 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as TermsImport } from './routes/terms'
+import { Route as PrivacyImport } from './routes/privacy'
 import { Route as IndexImport } from './routes/index'
 import { Route as VideoIndexImport } from './routes/video/index'
 import { Route as VideoUploadImport } from './routes/video/upload'
+import { Route as AuthRegisterImport } from './routes/auth/register'
+import { Route as AuthLoginImport } from './routes/auth/login'
+import { Route as AuthForgetPasswordImport } from './routes/auth/forget-password'
 
 // Create/Update Routes
+
+const TermsRoute = TermsImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const PrivacyRoute = PrivacyImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const IndexRoute = IndexImport.update({
   id: '/',
@@ -35,6 +52,24 @@ const VideoUploadRoute = VideoUploadImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const AuthRegisterRoute = AuthRegisterImport.update({
+  id: '/auth/register',
+  path: '/auth/register',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthLoginRoute = AuthLoginImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthForgetPasswordRoute = AuthForgetPasswordImport.update({
+  id: '/auth/forget-password',
+  path: '/auth/forget-password',
+  getParentRoute: () => rootRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -44,6 +79,41 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyImport
+      parentRoute: typeof rootRoute
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/forget-password': {
+      id: '/auth/forget-password'
+      path: '/auth/forget-password'
+      fullPath: '/auth/forget-password'
+      preLoaderRoute: typeof AuthForgetPasswordImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/register': {
+      id: '/auth/register'
+      path: '/auth/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterImport
       parentRoute: typeof rootRoute
     }
     '/video/upload': {
@@ -67,12 +137,22 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
+  '/auth/forget-password': typeof AuthForgetPasswordRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
   '/video/upload': typeof VideoUploadRoute
   '/video': typeof VideoIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
+  '/auth/forget-password': typeof AuthForgetPasswordRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
   '/video/upload': typeof VideoUploadRoute
   '/video': typeof VideoIndexRoute
 }
@@ -80,27 +160,67 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
+  '/auth/forget-password': typeof AuthForgetPasswordRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
   '/video/upload': typeof VideoUploadRoute
   '/video/': typeof VideoIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/video/upload' | '/video'
+  fullPaths:
+    | '/'
+    | '/privacy'
+    | '/terms'
+    | '/auth/forget-password'
+    | '/auth/login'
+    | '/auth/register'
+    | '/video/upload'
+    | '/video'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/video/upload' | '/video'
-  id: '__root__' | '/' | '/video/upload' | '/video/'
+  to:
+    | '/'
+    | '/privacy'
+    | '/terms'
+    | '/auth/forget-password'
+    | '/auth/login'
+    | '/auth/register'
+    | '/video/upload'
+    | '/video'
+  id:
+    | '__root__'
+    | '/'
+    | '/privacy'
+    | '/terms'
+    | '/auth/forget-password'
+    | '/auth/login'
+    | '/auth/register'
+    | '/video/upload'
+    | '/video/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
+  AuthForgetPasswordRoute: typeof AuthForgetPasswordRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
   VideoUploadRoute: typeof VideoUploadRoute
   VideoIndexRoute: typeof VideoIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
+  AuthForgetPasswordRoute: AuthForgetPasswordRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
   VideoUploadRoute: VideoUploadRoute,
   VideoIndexRoute: VideoIndexRoute,
 }
@@ -116,12 +236,32 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/privacy",
+        "/terms",
+        "/auth/forget-password",
+        "/auth/login",
+        "/auth/register",
         "/video/upload",
         "/video/"
       ]
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/privacy": {
+      "filePath": "privacy.tsx"
+    },
+    "/terms": {
+      "filePath": "terms.tsx"
+    },
+    "/auth/forget-password": {
+      "filePath": "auth/forget-password.tsx"
+    },
+    "/auth/login": {
+      "filePath": "auth/login.tsx"
+    },
+    "/auth/register": {
+      "filePath": "auth/register.tsx"
     },
     "/video/upload": {
       "filePath": "video/upload.tsx"

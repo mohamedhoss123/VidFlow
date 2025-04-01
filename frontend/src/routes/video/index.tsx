@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { Navbar } from "@/components/navbar"
 
 // Mock data for videos
 const mockVideos = [
@@ -87,7 +88,10 @@ export const Route = createFileRoute('/video/')({
 })
 
 function RouteComponent() {
-  return <MyUploadsPage></MyUploadsPage>
+  return <>
+  <Navbar></Navbar>
+  <MyUploadsPage></MyUploadsPage>
+  </>
 }
 
 export default function MyUploadsPage() {
