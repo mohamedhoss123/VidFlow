@@ -1,7 +1,5 @@
-"use client"
-
 import { useState } from "react"
-import { Search, Filter, MoreVertical, Play, Edit, Trash2, Share2, Download } from "lucide-react"
+import { Search, Filter, MoreVertical, Play, Edit, Trash2, Share2 } from "lucide-react"
 import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -18,7 +16,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Navbar } from "@/components/navbar"
 
 // Mock data for videos
 const mockVideos = [
@@ -83,15 +80,12 @@ const mockVideos = [
     fileType: "video/mp4",
   },
 ]
-export const Route = createFileRoute('/video/')({
+export const Route = createFileRoute('/home/')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  return <>
-  <Navbar></Navbar>
-  <MyUploadsPage></MyUploadsPage>
-  </>
+ return <MyUploadsPage></MyUploadsPage>
 }
 
 export default function MyUploadsPage() {
@@ -190,47 +184,12 @@ export default function MyUploadsPage() {
               <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-lg line-clamp-1">{video.title}</h3>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="-mr-2">
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">Actions</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => window.open(`/video/${video.id}`, "_blank")}>
-                        <Play className="mr-2 h-4 w-4" />
-                        <span>Play</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => router({to:`./edit/${video.id}`})}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        <span>Edit</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare(video.id)}>
-                        <Share2 className="mr-2 h-4 w-4" />
-                        <span>Share</span>
-                      </DropdownMenuItem>
-               
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => {
-                          setSelectedVideo(video)
-                          setShowDeleteDialog(true)
-                        }}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Delete</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  
                 </div>
 
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{video.description}</p>
 
                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                   <span>{format(video.uploadDate, "MMM d, yyyy")}</span>
-                  <span>{video.fileSize}</span>
                 </div>
               </CardContent>
             </Card>

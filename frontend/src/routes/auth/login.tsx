@@ -7,7 +7,6 @@ import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
@@ -26,7 +25,6 @@ function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,7 +63,6 @@ function LoginPage() {
 
       // For demo purposes, let's simulate a successful login
       // In a real app, you would handle the response from your API
-      console.log("Login successful", { email, password, rememberMe })
       
       // Redirect to home page after successful login
       router({to:"/"})
@@ -150,20 +147,7 @@ function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="remember" 
-                checked={rememberMe} 
-                onCheckedChange={(checked) => setRememberMe(checked === true)}
-                disabled={isLoading}
-              />
-              <Label 
-                htmlFor="remember" 
-                className="text-sm font-normal cursor-pointer"
-              >
-                Remember me
-              </Label>
-            </div>
+
           </CardContent>
           <CardFooter className="flex flex-col">
             <Button 
