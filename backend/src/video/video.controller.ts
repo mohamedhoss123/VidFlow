@@ -46,7 +46,7 @@ export class VideoController {
     await this.videoQueue.add("optomizeFile", {
       videoId: videoUrl,
       id: video.id,
-      resulution: VideoQualityEnum.P114,
+      resulution: VideoQualityEnum.P144,
     });
     await this.videoQueue.add("optomizeFile", {
       videoId: videoUrl,

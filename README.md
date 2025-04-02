@@ -7,7 +7,7 @@ VidFlow is a video hosting and streaming platform that allows users to upload, s
 ### **1. Backend**
 
 - **Language & Framework:** Node.js (NestJS)
-- **Database:** PostgreSQL
+- **Database:** Mysql
 - **Storage:** 
 MinIO
 - **Video Processing:** FFmpeg
