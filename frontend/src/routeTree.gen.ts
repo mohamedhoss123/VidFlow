@@ -22,6 +22,7 @@ import { Route as VideoUploadImport } from './routes/video/upload'
 import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthLoginImport } from './routes/auth/login'
 import { Route as AuthForgetPasswordImport } from './routes/auth/forget-password'
+import { Route as VideoEditVideoIdImport } from './routes/video/edit.$videoId'
 
 // Create/Update Routes
 
@@ -89,6 +90,12 @@ const AuthForgetPasswordRoute = AuthForgetPasswordImport.update({
   id: '/auth/forget-password',
   path: '/auth/forget-password',
   getParentRoute: () => rootRoute,
+} as any)
+
+const VideoEditVideoIdRoute = VideoEditVideoIdImport.update({
+  id: '/edit/$videoId',
+  path: '/edit/$videoId',
+  getParentRoute: () => VideoRouteRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
@@ -172,6 +179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeIndexImport
       parentRoute: typeof HomeRouteImport
     }
+    '/video/edit/$videoId': {
+      id: '/video/edit/$videoId'
+      path: '/edit/$videoId'
+      fullPath: '/video/edit/$videoId'
+      preLoaderRoute: typeof VideoEditVideoIdImport
+      parentRoute: typeof VideoRouteImport
+    }
   }
 }
 
@@ -191,10 +205,12 @@ const HomeRouteRouteWithChildren = HomeRouteRoute._addFileChildren(
 
 interface VideoRouteRouteChildren {
   VideoUploadRoute: typeof VideoUploadRoute
+  VideoEditVideoIdRoute: typeof VideoEditVideoIdRoute
 }
 
 const VideoRouteRouteChildren: VideoRouteRouteChildren = {
   VideoUploadRoute: VideoUploadRoute,
+  VideoEditVideoIdRoute: VideoEditVideoIdRoute,
 }
 
 const VideoRouteRouteWithChildren = VideoRouteRoute._addFileChildren(
@@ -213,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/video/upload': typeof VideoUploadRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/home/': typeof HomeIndexRoute
+  '/video/edit/$videoId': typeof VideoEditVideoIdRoute
 }
 
 export interface FileRoutesByTo {
@@ -226,6 +243,7 @@ export interface FileRoutesByTo {
   '/video/upload': typeof VideoUploadRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/home': typeof HomeIndexRoute
+  '/video/edit/$videoId': typeof VideoEditVideoIdRoute
 }
 
 export interface FileRoutesById {
@@ -241,6 +259,7 @@ export interface FileRoutesById {
   '/video/upload': typeof VideoUploadRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/home/': typeof HomeIndexRoute
+  '/video/edit/$videoId': typeof VideoEditVideoIdRoute
 }
 
 export interface FileRouteTypes {
@@ -257,6 +276,7 @@ export interface FileRouteTypes {
     | '/video/upload'
     | '/watch/$videoId'
     | '/home/'
+    | '/video/edit/$videoId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -269,6 +289,7 @@ export interface FileRouteTypes {
     | '/video/upload'
     | '/watch/$videoId'
     | '/home'
+    | '/video/edit/$videoId'
   id:
     | '__root__'
     | '/'
@@ -282,6 +303,7 @@ export interface FileRouteTypes {
     | '/video/upload'
     | '/watch/$videoId'
     | '/home/'
+    | '/video/edit/$videoId'
   fileRoutesById: FileRoutesById
 }
 
@@ -342,7 +364,8 @@ export const routeTree = rootRoute
     "/video": {
       "filePath": "video/route.tsx",
       "children": [
-        "/video/upload"
+        "/video/upload",
+        "/video/edit/$videoId"
       ]
     },
     "/privacy": {
@@ -370,6 +393,10 @@ export const routeTree = rootRoute
     "/home/": {
       "filePath": "home/index.tsx",
       "parent": "/home"
+    },
+    "/video/edit/$videoId": {
+      "filePath": "video/edit.$videoId.tsx",
+      "parent": "/video"
     }
   }
 }

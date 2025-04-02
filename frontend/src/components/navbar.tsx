@@ -39,7 +39,7 @@ export function Navbar() {
         <div className="flex items-center">
           <Link to="/" className="text-xl font-bold flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            <span>FileUploader</span>
+            <span>VidFlow</span>
           </Link>
 
           {/* Desktop Navigation Links */}
