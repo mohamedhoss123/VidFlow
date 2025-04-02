@@ -19,6 +19,7 @@ import { Route as IndexImport } from './routes/index'
 import { Route as HomeIndexImport } from './routes/home/index'
 import { Route as WatchVideoIdImport } from './routes/watch/$videoId'
 import { Route as VideoUploadImport } from './routes/video/upload'
+import { Route as VideoMyUploadsImport } from './routes/video/my-uploads'
 import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthLoginImport } from './routes/auth/login'
 import { Route as AuthForgetPasswordImport } from './routes/auth/forget-password'
@@ -71,6 +72,12 @@ const WatchVideoIdRoute = WatchVideoIdImport.update({
 const VideoUploadRoute = VideoUploadImport.update({
   id: '/upload',
   path: '/upload',
+  getParentRoute: () => VideoRouteRoute,
+} as any)
+
+const VideoMyUploadsRoute = VideoMyUploadsImport.update({
+  id: '/my-uploads',
+  path: '/my-uploads',
   getParentRoute: () => VideoRouteRoute,
 } as any)
 
@@ -158,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRegisterImport
       parentRoute: typeof rootRoute
     }
+    '/video/my-uploads': {
+      id: '/video/my-uploads'
+      path: '/my-uploads'
+      fullPath: '/video/my-uploads'
+      preLoaderRoute: typeof VideoMyUploadsImport
+      parentRoute: typeof VideoRouteImport
+    }
     '/video/upload': {
       id: '/video/upload'
       path: '/upload'
@@ -204,11 +218,13 @@ const HomeRouteRouteWithChildren = HomeRouteRoute._addFileChildren(
 )
 
 interface VideoRouteRouteChildren {
+  VideoMyUploadsRoute: typeof VideoMyUploadsRoute
   VideoUploadRoute: typeof VideoUploadRoute
   VideoEditVideoIdRoute: typeof VideoEditVideoIdRoute
 }
 
 const VideoRouteRouteChildren: VideoRouteRouteChildren = {
+  VideoMyUploadsRoute: VideoMyUploadsRoute,
   VideoUploadRoute: VideoUploadRoute,
   VideoEditVideoIdRoute: VideoEditVideoIdRoute,
 }
@@ -226,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/auth/forget-password': typeof AuthForgetPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/video/my-uploads': typeof VideoMyUploadsRoute
   '/video/upload': typeof VideoUploadRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/home/': typeof HomeIndexRoute
@@ -240,6 +257,7 @@ export interface FileRoutesByTo {
   '/auth/forget-password': typeof AuthForgetPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/video/my-uploads': typeof VideoMyUploadsRoute
   '/video/upload': typeof VideoUploadRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/home': typeof HomeIndexRoute
@@ -256,6 +274,7 @@ export interface FileRoutesById {
   '/auth/forget-password': typeof AuthForgetPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/video/my-uploads': typeof VideoMyUploadsRoute
   '/video/upload': typeof VideoUploadRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/home/': typeof HomeIndexRoute
@@ -273,6 +292,7 @@ export interface FileRouteTypes {
     | '/auth/forget-password'
     | '/auth/login'
     | '/auth/register'
+    | '/video/my-uploads'
     | '/video/upload'
     | '/watch/$videoId'
     | '/home/'
@@ -286,6 +306,7 @@ export interface FileRouteTypes {
     | '/auth/forget-password'
     | '/auth/login'
     | '/auth/register'
+    | '/video/my-uploads'
     | '/video/upload'
     | '/watch/$videoId'
     | '/home'
@@ -300,6 +321,7 @@ export interface FileRouteTypes {
     | '/auth/forget-password'
     | '/auth/login'
     | '/auth/register'
+    | '/video/my-uploads'
     | '/video/upload'
     | '/watch/$videoId'
     | '/home/'
@@ -364,6 +386,7 @@ export const routeTree = rootRoute
     "/video": {
       "filePath": "video/route.tsx",
       "children": [
+        "/video/my-uploads",
         "/video/upload",
         "/video/edit/$videoId"
       ]
@@ -382,6 +405,10 @@ export const routeTree = rootRoute
     },
     "/auth/register": {
       "filePath": "auth/register.tsx"
+    },
+    "/video/my-uploads": {
+      "filePath": "video/my-uploads.tsx",
+      "parent": "/video"
     },
     "/video/upload": {
       "filePath": "video/upload.tsx",

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { api } from '@/utils/api'
 
 export const Route = createFileRoute('/auth/login')({
   component: RouteComponent,
@@ -46,26 +47,8 @@ function LoginPage() {
     setIsLoading(true)
 
     try {
-      // In a real app, you would call your authentication API here
-      // const response = await fetch('/api/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password, rememberMe }),
-      // })
-      
-      // if (!response.ok) {
-      //   const data = await response.json()
-      //   throw new Error(data.message || 'Login failed')
-      // }
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // For demo purposes, let's simulate a successful login
-      // In a real app, you would handle the response from your API
-      
-      // Redirect to home page after successful login
-      router({to:"/"})
+      await api.post('/auth/login', { email, password })
+      router({to:"/home"})
     } catch (err) {
       console.error("Login error:", err)
       setError(err instanceof Error ? err.message : "Failed to login. Please try again.")
