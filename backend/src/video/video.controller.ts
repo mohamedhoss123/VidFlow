@@ -6,19 +6,20 @@ import {
   Post,
   Res,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 import { VideoService } from "./services/video.service";
 import { UploadVideoDto } from "./dto/upload-video.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { ApiConsumes } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiConsumes } from "@nestjs/swagger";
 import { FileUploadService } from "./services/file-upload.service";
 import Stream from "stream";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
-import { VideoQualityEnum } from "./enums/video-quality.enum";
-
+// import { AuthGuard } from "src/auth/guard/auth.guard";
+@ApiBearerAuth()
 @Controller("videos")
 export class VideoController {
   constructor(
@@ -26,7 +27,7 @@ export class VideoController {
     private readonly fileUploadService: FileUploadService,
     @InjectQueue("video-queue") private videoQueue: Queue,
   ) {}
-
+  // @UseGuards(AuthGuard)
   @Post()
   @ApiConsumes("multipart/form-data")
   @UseInterceptors(FileInterceptor("file"))
@@ -46,17 +47,6 @@ export class VideoController {
     await this.videoQueue.add("optomizeFile", {
       videoId: videoUrl,
       id: video.id,
-      resulution: VideoQualityEnum.P144,
-    });
-    await this.videoQueue.add("optomizeFile", {
-      videoId: videoUrl,
-      id: video.id,
-      resulution: VideoQualityEnum.P360,
-    });
-    await this.videoQueue.add("optomizeFile", {
-      videoId: videoUrl,
-      id: video.id,
-      resulution: VideoQualityEnum.P720,
     });
     return video;
   }
