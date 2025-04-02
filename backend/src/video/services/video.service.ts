@@ -69,8 +69,8 @@ export class VideoService {
         "./video/optimized-" + videoId + ".m3u8", // Output file
       ],
       {
-        // stdio: "inherit",
-        // shell: true,
+        stdio: "inherit",
+        shell: true,
       },
     );
 

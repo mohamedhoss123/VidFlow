@@ -32,6 +32,7 @@ model Video{
   status VideoStatus @default(PROCESSING)
   thumbnail_url String?
   size Int
+  length Int?
   quality VideoQuality[]
 }
 

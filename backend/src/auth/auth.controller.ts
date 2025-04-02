@@ -1,14 +1,8 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { LoginUserDto } from "./dto/login-user.dto";
-import { Token } from "./decorator/token.decorator";
+import { AuthGuard } from "./guard/auth.guard";
 
 @Controller("auths")
 export class AuthController {
@@ -35,14 +29,9 @@ export class AuthController {
     });
   }
 
+  @UseGuards(AuthGuard)
   @Get("validate")
-  validate(@Token() authorization: string) {
-    console.log(authorization);
-    const token = authorization.split(" ")[1];
-    const payload = this.authService.verifyRefreshToken(token);
-    if (!payload) {
-      throw new UnauthorizedException();
-    }
+  validate() {
     return { valid: true };
   }
 }
