@@ -11,7 +11,7 @@ async function bootstrap() {
     .setDescription("NestJS API with Swagger")
     .setVersion("1.0")
     .addBearerAuth({
-      name: "JWT",
+      name: "authorization",
       description: "Enter   token",
       scheme: "bearer",
       type: "http",
@@ -27,4 +27,3 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 3000);
 }
 void bootstrap();
-
