@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import type React from "react"
-
+import {z} from "zod"
 import { useState } from "react"
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react"
 import { Link } from '@tanstack/react-router'
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { api } from '@/utils/api'
 
 export const Route = createFileRoute('/auth/register')({
   component: RouteComponent,
@@ -19,7 +20,12 @@ function RouteComponent() {
   return <RegisterPage/>
 }
 
-
+const registerSchema = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  password: z.string().min(8),
+  confirmPassword: z.string(),
+})
 
 
 function RegisterPage() {
@@ -72,23 +78,10 @@ function RegisterPage() {
     setIsLoading(true)
 
     try {
-      // In a real app, you would call your registration API here
-      // const response = await fetch('/api/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ name, email, password }),
-      // })
-
-      // if (!response.ok) {
-      //   const data = await response.json()
-      //   throw new Error(data.message || 'Registration failed')
-      // }
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const data = await api.post('/auths/register', { name, email, password })
 
       // For demo purposes, let's simulate a successful registration
-      console.log("Registration successful", { name, email, password })
+      console.log("Registration successful",data)
 
       // Redirect to login page after successful registration
       router({to:"/auth/login"})
