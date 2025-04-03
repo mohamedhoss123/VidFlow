@@ -6,7 +6,6 @@ import {
   Post,
   Res,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
@@ -14,7 +13,7 @@ import { VideoService } from "./services/video.service";
 import { UploadVideoDto } from "./dto/upload-video.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes } from "@nestjs/swagger";
-import { FileUploadService } from "./services/file-upload.service";
+import { BucketService } from "./services/bucket.service";
 import Stream from "stream";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
@@ -24,7 +23,7 @@ import { Queue } from "bullmq";
 export class VideoController {
   constructor(
     private readonly videoService: VideoService,
-    private readonly fileUploadService: FileUploadService,
+    private readonly bucketService: BucketService,
     @InjectQueue("video-queue") private videoQueue: Queue,
   ) {}
   // @UseGuards(AuthGuard)
@@ -35,7 +34,7 @@ export class VideoController {
     @Body() data: UploadVideoDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    const videoUrl = await this.fileUploadService.uploadFile(
+    const videoUrl = await this.bucketService.uploadVideo(
       file.buffer,
       uuidv4(),
     );
