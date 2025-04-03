@@ -1,17 +1,17 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
-import { FileUploadService } from "../services/file-upload.service";
-import { VideoService } from "../services/video.service";
-import * as fs from "fs";
+import { BucketService } from "../services/bucket.service";
+import * as fs from "fs/promises";
 import { PrismaService } from "src/prisma/prisma.service";
 import { VideoStatus } from "@prisma/client";
 import { VideoQualityEnum } from "../enums/video-quality.enum";
+import { OptomizeService } from "../services/optomize.service";
 
 @Processor("video-queue")
 export class VideoProcessorService extends WorkerHost {
   constructor(
-    private readonly videoService: VideoService,
-    private readonly fileUploadService: FileUploadService,
+    private readonly optomizeService: OptomizeService,
+    private readonly bucketService: BucketService,
     private readonly prismaService: PrismaService,
   ) {
     super();
@@ -23,28 +23,20 @@ export class VideoProcessorService extends WorkerHost {
     const videoId = job.data.videoId;
     console.log(job.data);
     for (const resolution of Object.values(VideoQualityEnum)) {
-      await this.videoService.optomizeFile(videoId, resolution);
+      await this.optomizeService.optomizeFile(videoId, resolution);
 
-      const files = fs.readdirSync("./video");
+      const files = await fs.readdir("./video");
       await Promise.all(
         files.map(async (file) => {
           if (file.includes(videoId)) {
-            await this.fileUploadService.uploadFile(
-              fs.readFileSync("./video/" + file),
+            await this.bucketService.uploadVideo(
+              await fs.readFile("./video/" + file),
               file,
             );
-            fs.unlinkSync("./video/" + file);
+            await fs.unlink("./video/" + file);
           }
         }),
       );
-
-      await this.prismaService.video.update({
-        where: { id: job.data.id },
-        data: {
-          url: "optimized-" + job.data.videoId + ".m3u8",
-          status: VideoStatus.READY,
-        },
-      });
 
       await this.prismaService.videoQuality.create({
         data: {
@@ -54,6 +46,12 @@ export class VideoProcessorService extends WorkerHost {
         },
       });
     }
+    await this.prismaService.video.update({
+      where: { id: job.data.id },
+      data: {
+        status: VideoStatus.READY,
+      },
+    });
     await job.updateProgress(100);
     return {};
   }
