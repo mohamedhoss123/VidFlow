@@ -5,12 +5,12 @@ import * as fs from "fs/promises";
 import { PrismaService } from "src/prisma/prisma.service";
 import { VideoStatus } from "@prisma/client";
 import { VideoQualityEnum } from "../enums/video-quality.enum";
-import { OptomizeService } from "../services/optomize.service";
+import { OptimizeService } from "../services/optimize.service";
 
 @Processor("video-queue")
 export class VideoProcessorService extends WorkerHost {
   constructor(
-    private readonly optomizeService: OptomizeService,
+    private readonly optomizeService: OptimizeService,
     private readonly bucketService: BucketService,
     private readonly prismaService: PrismaService,
   ) {
@@ -23,7 +23,7 @@ export class VideoProcessorService extends WorkerHost {
     const videoId = job.data.videoId;
     console.log(job.data);
     for (const resolution of Object.values(VideoQualityEnum)) {
-      await this.optomizeService.optomizeFile(videoId, resolution);
+      await this.optomizeService.optimizeFile(videoId, resolution);
 
       const files = await fs.readdir("./video");
       await Promise.all(

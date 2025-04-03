@@ -6,7 +6,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { VideoProcessorService } from "./processors/video-processor";
 import { AuthModule } from "src/auth/auth.module";
 import { PrismaModule } from "src/prisma/prisma.module";
-import { OptomizeService } from "./services/optomize.service";
+import { OptimizeService } from "./services/optimize.service";
 
 @Module({
   imports: [
@@ -21,7 +21,7 @@ import { OptomizeService } from "./services/optomize.service";
     BucketService,
     VideoService,
     VideoProcessorService,
-    OptomizeService,
+    OptimizeService,
   ],
   exports: [],
 })

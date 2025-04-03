@@ -12,7 +12,6 @@ export class VideoService {
     return this.prismaService.video.create({
       data: {
         name: name,
-        url: undefined,
         size: size,
         userId: 1,
       },

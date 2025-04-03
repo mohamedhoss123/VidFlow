@@ -28,11 +28,9 @@ model Video{
   name String
   user User @relation(fields: [userId],references: [id])
   userId    Int
-  url String?
   status VideoStatus @default(PROCESSING)
   thumbnail_url String?
   size Int
-  length Int?
   quality VideoQuality[]
 }
 
