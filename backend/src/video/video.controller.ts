@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -58,5 +59,9 @@ export class VideoController {
     const videoStream = (await this.videoService.getVideoStream(id)) as Stream;
 
     videoStream.pipe(res);
+  }
+  @Get()
+  async getVideos(@Query("cursor") cursor?: number) {
+    return this.videoService.cursorPagination(cursor);
   }
 }
