@@ -32,6 +32,8 @@ model Video{
   thumbnail_url String?
   size Int
   quality VideoQuality[]
+  createdAt DateTime @default(now())  
+  updatedAt DateTime  @default(now()) @updatedAt    
 }
 
 model VideoQuality{
