@@ -8,7 +8,7 @@ import ReactPlayer from "react-player"
 import { DropdownMenu, DropdownMenuItem } from '@radix-ui/react-dropdown-menu'
 import { DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { api } from '@/utils/api'
-import { set } from 'date-fns'
+import { useQuery } from '@tanstack/react-query'
 export const Route = createFileRoute('/watch/$videoId')({
   component: RouteComponent,
 })
@@ -34,20 +34,28 @@ function VideoPlayer({videoId} : {videoId: string}) {
   const [videoUrl, setVideoUrl] = useState("")
   const [qualitys, setQualitys] = useState([])
   const [currentQuality, setCurrentQuality] = useState(0)
- const videoRef = useRef<ReactPlayer>(null)
-  useEffect(() => {
-    console.log(videoId);
+  const videoRef = useRef<ReactPlayer>(null)
 
-    (async function () {
-        const  data  = await api.get(`/videos/${videoId}/info`)
-         setVideoUrl(data.data.quality[0].url)
-         setCurrentQuality(data.data.quality[0].quality	)
-         setQualitys(data.data.quality)
-      
-    })();
-  },[])
+  const {data} = useQuery({
+    queryKey: ["video", videoId],
+    queryFn: async () => {
+      const response = await api.get(`/videos/${videoId}/info`)
+      return response.data
+    },
+    
+  })
+
+  useEffect(() => { 
+    console.log(data);
+    if(data){
+      setVideoUrl(`${import.meta.env.VITE_API_URL}/videos/${data.quality[0].url}`)
+      setQualitys(data.quality)
+      setCurrentQuality(data.quality[0].quality)
+    }
+  },[data])
+  useEffect(() => {console.log(videoUrl)}, [videoUrl])
   const togglePlay = () => {
-    console.log(videoRef)
+    console.log(data.quality[0].url)
       setIsPlaying(!isPlaying)
   }
 
@@ -109,7 +117,7 @@ function VideoPlayer({videoId} : {videoId: string}) {
       <ReactPlayer
         className="w-full aspect-video"
         crossOrigin="anonymous"
-        url={`${import.meta.env.VITE_API_URL}/videos/${videoUrl}` }
+        url={videoUrl}
         playing={isPlaying}
         ref={videoRef}
         muted={isMuted}
@@ -117,6 +125,7 @@ function VideoPlayer({videoId} : {videoId: string}) {
         width={"100%"}
         height={"100%"}
       onProgress={handleRender}
+      
         />
        
       </div>

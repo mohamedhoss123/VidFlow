@@ -95,6 +95,9 @@ export default function MyUploadsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {data.pages.map((page) =>
             page.map((video: any) => (
+              <Link
+                to={`/watch/${video.id}`}
+                key={video.id}>
               <Card key={video.id} className="overflow-hidden group">
                 <div className="relative">
                   <img
@@ -120,7 +123,7 @@ export default function MyUploadsPage() {
                     <span>{format(video.createdAt, "MMM d, yyyy")}</span>
                   </div>
                 </CardContent>
-              </Card>
+              </Card></Link>
             ))
           )}
         </div>

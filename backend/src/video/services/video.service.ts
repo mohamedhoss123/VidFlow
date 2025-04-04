@@ -47,7 +47,8 @@ export class VideoService {
       take: 10,
       skip: cursor ? 1 : 0, // Skip cursor if provided
       cursor: cursor ? { id: Number(cursor) } : undefined,
-      orderBy: { createdAt: "desc" },
+      orderBy: { id: "desc" },
+      where: { status: "READY" },
     });
   }
 }
