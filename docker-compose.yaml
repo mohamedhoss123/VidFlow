@@ -1,4 +1,5 @@
-version: '3'
+version: "3"
+
 services:
   mysql:
     image: mysql:8.0
@@ -32,8 +33,29 @@ services:
     ports:
       - "6379:6379"
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app:z
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./frontend:/app:z
+    environment:
+      - VITE_API_URL="http://localhost:3000"
+      - NODE_ENV=development
 
 volumes:
   mysql_data:
   minio_data:
-
