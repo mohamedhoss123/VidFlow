@@ -29,7 +29,7 @@ export class VideoProcessorService extends WorkerHost {
       await Promise.all(
         files.map(async (file) => {
           if (file.includes(videoId)) {
-            await this.bucketService.uploadVideo(
+            await this.bucketService.uploadFile(
               await fs.readFile("./video/" + file),
               file,
             );

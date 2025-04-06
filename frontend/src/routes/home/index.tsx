@@ -101,7 +101,7 @@ export default function MyUploadsPage() {
               <Card key={video.id} className="overflow-hidden group">
                 <div className="relative">
                   <img
-                    src={video.thumbnailUrl || "/placeholder.svg"}
+                    src={import.meta.env.VITE_API_URL+"/videos/"+video.thumbnail_url}
                     alt={video.title}
                     className="w-full h-[180px] object-cover"
                   />
