@@ -7,7 +7,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 // import { Stream } from "stream";
 @Injectable()
-export class FileUploadService {
+export class BucketService {
   constructor(private readonly configService: ConfigService) {}
   private readonly client = new S3Client({
     region: "us-east-1",
@@ -19,7 +19,7 @@ export class FileUploadService {
     forcePathStyle: true,
   });
 
-  async uploadFile(file: Buffer, key: string) {
+  async uploadVideo(file: Buffer, key: string) {
     await this.client.send(
       new PutObjectCommand({
         Bucket: "files",
@@ -30,22 +30,12 @@ export class FileUploadService {
     return key;
   }
 
-  // streamToBuffer(stream: ReadableStream): Promise<Buffer> {
-  //   return new Promise<Buffer>((resolve, reject) => {
-  //     const chunks: Buffer[] = [];
-  //     stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-  //     stream.on("end", () => resolve(Buffer.concat(chunks)));
-  //     stream.on("error", reject);
-  //   });
-  // }
   async getVideo(key: string) {
-    const data = await this.client.send(
+    return await this.client.send(
       new GetObjectCommand({
         Bucket: "files",
         Key: key,
       }),
     );
-
-    return data;
   }
 }

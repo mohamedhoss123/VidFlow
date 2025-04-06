@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -12,21 +13,21 @@ import { v4 as uuidv4 } from "uuid";
 import { VideoService } from "./services/video.service";
 import { UploadVideoDto } from "./dto/upload-video.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { ApiConsumes } from "@nestjs/swagger";
-import { FileUploadService } from "./services/file-upload.service";
+import { ApiBearerAuth, ApiConsumes } from "@nestjs/swagger";
+import { BucketService } from "./services/bucket.service";
 import Stream from "stream";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
-import { VideoQualityEnum } from "./enums/video-quality.enum";
-
+// import { AuthGuard } from "src/auth/guard/auth.guard";
+@ApiBearerAuth()
 @Controller("videos")
 export class VideoController {
   constructor(
     private readonly videoService: VideoService,
-    private readonly fileUploadService: FileUploadService,
+    private readonly bucketService: BucketService,
     @InjectQueue("video-queue") private videoQueue: Queue,
   ) {}
-
+  // @UseGuards(AuthGuard)
   @Post()
   @ApiConsumes("multipart/form-data")
   @UseInterceptors(FileInterceptor("file"))
@@ -34,7 +35,7 @@ export class VideoController {
     @Body() data: UploadVideoDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    const videoUrl = await this.fileUploadService.uploadFile(
+    const videoUrl = await this.bucketService.uploadVideo(
       file.buffer,
       uuidv4(),
     );
@@ -46,17 +47,6 @@ export class VideoController {
     await this.videoQueue.add("optomizeFile", {
       videoId: videoUrl,
       id: video.id,
-      resulution: VideoQualityEnum.P144,
-    });
-    await this.videoQueue.add("optomizeFile", {
-      videoId: videoUrl,
-      id: video.id,
-      resulution: VideoQualityEnum.P360,
-    });
-    await this.videoQueue.add("optomizeFile", {
-      videoId: videoUrl,
-      id: video.id,
-      resulution: VideoQualityEnum.P720,
     });
     return video;
   }
@@ -69,5 +59,9 @@ export class VideoController {
     const videoStream = (await this.videoService.getVideoStream(id)) as Stream;
 
     videoStream.pipe(res);
+  }
+  @Get()
+  async getVideos(@Query("cursor") cursor?: number) {
+    return this.videoService.cursorPagination(cursor);
   }
 }

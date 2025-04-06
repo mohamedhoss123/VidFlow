@@ -3,7 +3,7 @@ import { AuthService } from "./auth.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { LoginUserDto } from "./dto/login-user.dto";
 import { AuthGuard } from "./guard/auth.guard";
-
+import { ApiBearerAuth } from "@nestjs/swagger";
 @Controller("auths")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -28,7 +28,7 @@ export class AuthController {
       email: payload.email,
     });
   }
-
+  @ApiBearerAuth()
   @UseGuards(AuthGuard)
   @Get("validate")
   validate() {
