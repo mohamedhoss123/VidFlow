@@ -2,7 +2,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useRef, useEffect } from "react"
 import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Ellipsis, AudioLines, MoveRight, ArrowRight } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
-import VideoInfo from '@/components/video/video-info'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import {  Share2, Flag, MoreHorizontal } from "lucide-react"
 import ReactPlayer from "react-player"
 
 import { DropdownMenu, DropdownMenuItem } from '@radix-ui/react-dropdown-menu'
@@ -18,12 +20,16 @@ function RouteComponent() {
   return<div className="container mx-auto px-4 py-8">
 
           <VideoPlayer videoId={videoId} />
-          <VideoInfo />
 
     </div>
 }
 
 
+
+
+
+  
+  
 
 function VideoPlayer({videoId} : {videoId: string}) {
   const [isPlaying, setIsPlaying] = useState(false)
@@ -35,7 +41,14 @@ function VideoPlayer({videoId} : {videoId: string}) {
   const [qualitys, setQualitys] = useState([])
   const [currentQuality, setCurrentQuality] = useState(0)
   const videoRef = useRef<ReactPlayer>(null)
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
+  
+
+  
+  const toggleDescription = () => {
+    setIsDescriptionExpanded(!isDescriptionExpanded)
+  }
   const {data} = useQuery({
     queryKey: ["video", videoId],
     queryFn: async () => {
@@ -112,6 +125,7 @@ function VideoPlayer({videoId} : {videoId: string}) {
   }
 
   return (
+    <div>
     <div className="relative bg-black rounded-lg overflow-hidden">
       <div onClick={togglePlay}>
       <ReactPlayer
@@ -199,6 +213,62 @@ function VideoPlayer({videoId} : {videoId: string}) {
           </div>
         </div>
       </div>
+      
+    </div>
+    {data && (<div className="space-y-4">
+        <h1 className="text-xl font-bold">{data.name}</h1>
+  
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Channel" />
+              <AvatarFallback>CH</AvatarFallback>
+            </Avatar>
+  
+            <div>
+              <h3 className="font-medium">React Tutorials</h3>
+            </div>
+  
+          </div>
+  
+          <div className="flex items-center gap-2">
+
+  
+            <Button variant="ghost" size="sm" className="rounded-full">
+              <Share2 size={18} className="mr-2" /> Share
+            </Button>
+  
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <MoreHorizontal size={18} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  <Flag size={16} className="mr-2" /> Report
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+  
+        <div className="bg-muted rounded-lg p-4">
+          <div className="flex items-center gap-2 text-sm mb-2">
+            <span className="font-medium">125K views</span>
+            <span>•</span>
+            <span>2 weeks ago</span>
+          </div>
+  
+          <div className={`text-sm ${isDescriptionExpanded ? "" : "line-clamp-3"}`}>
+            <p>{data.description} </p>
+          </div>
+  
+          <Button variant="ghost" size="sm" onClick={toggleDescription} className="mt-2">
+            {isDescriptionExpanded ? "Show less" : "Show more"}
+          </Button>
+        </div>
+      </div>)}
     </div>
   )
 }

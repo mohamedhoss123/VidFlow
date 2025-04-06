@@ -19,7 +19,7 @@ export class BucketService {
     forcePathStyle: true,
   });
 
-  async uploadVideo(file: Buffer, key: string) {
+  async uploadFile(file: Buffer, key: string) {
     await this.client.send(
       new PutObjectCommand({
         Bucket: "files",
