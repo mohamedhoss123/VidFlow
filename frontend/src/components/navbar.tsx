@@ -15,20 +15,21 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useMobile } from "@/hooks/use-mobile"
 import { Link } from '@tanstack/react-router'
+import { api } from "@/utils/api"
 export function Navbar() {
         const navigate = useNavigate()
   const isMobile = useMobile()
   const [isOpen, setIsOpen] = useState(false)
+  const router = useNavigate()
 
-  const handleLogout = () => {
-    // Handle logout logic here
-    console.log("Logging out...")
-    // router.push("/login")
+  const  handleLogout =async () => {
+    localStorage.removeItem("token")
+    router({to:"/auth/login"})
   }
 
   const navLinks = [
-    { href: "/", label: "Home", icon: Home },
-    { href: "/video", label: "My Uploads", icon: FileText },
+    { href: "/home", label: "Home", icon: Home },
+    { href: "/video/my-uploads", label: "My Uploads", icon: FileText },
     { href: "/video/upload", label: "Upload New", icon: Upload },
   ]
 

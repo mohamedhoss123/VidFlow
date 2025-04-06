@@ -1,23 +1,27 @@
 import { Module } from "@nestjs/common";
-import { PrismaService } from "src/prisma/prisma.service";
-import { FileUploadService } from "./services/file-upload.service";
+import { BucketService } from "./services/bucket.service";
 import { VideoController } from "./video.controller";
 import { VideoService } from "./services/video.service";
 import { BullModule } from "@nestjs/bullmq";
-import { VideoProcessorService } from "./services/video-processor.service";
+import { VideoProcessorService } from "./processors/video-processor";
+import { AuthModule } from "src/auth/auth.module";
+import { PrismaModule } from "src/prisma/prisma.module";
+import { OptimizeService } from "./services/optimize.service";
 
 @Module({
   imports: [
     BullModule.registerQueue({
       name: "video-queue",
     }),
+    AuthModule,
+    PrismaModule,
   ],
   controllers: [VideoController],
   providers: [
-    FileUploadService,
+    BucketService,
     VideoService,
-    PrismaService,
     VideoProcessorService,
+    OptimizeService,
   ],
   exports: [],
 })
