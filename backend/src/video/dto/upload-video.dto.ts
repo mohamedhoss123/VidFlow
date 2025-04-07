@@ -8,7 +8,7 @@ export class UploadVideoDto {
   readonly name: string;
   @ApiProperty({ type: "string" })
   @IsString()
-  readonly disc: string;
+  readonly description: string;
   @ApiProperty({ type: "string", format: "binary" })
   readonly file: Express.Multer.File;
 }

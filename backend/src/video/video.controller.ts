@@ -9,6 +9,7 @@ import {
   UploadedFile,
   Patch,
   UseInterceptors,
+  UseFilters,
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 import { VideoService } from "./services/video.service";
@@ -21,7 +22,9 @@ import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
 import { UpdateVideoDto } from "./dto/update-video.dto";
 import { CreateThumpnileDto } from "./dto/update-thumpnile.dto";
+import { NoSuchKeyExceptionFilter } from "./exceptions/no-such-key.filter";
 // import { AuthGuard } from "src/auth/guard/auth.guard";
+@UseFilters(new NoSuchKeyExceptionFilter())
 @ApiBearerAuth()
 @Controller("videos")
 export class VideoController {
@@ -41,8 +44,8 @@ export class VideoController {
     const videoUrl = await this.bucketService.uploadFile(file.buffer, uuidv4());
     const video = await this.videoService.create(
       data.name,
-      videoUrl,
       file.size,
+      data.description,
     );
     await this.videoQueue.add("optomizeFile", {
       videoId: videoUrl,
