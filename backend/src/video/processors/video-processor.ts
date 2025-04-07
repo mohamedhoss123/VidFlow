@@ -18,23 +18,20 @@ export class VideoProcessorService extends WorkerHost {
   }
   async process(
     job: Job<{ videoId: string; id: number; resulution: VideoQualityEnum }>,
-    // token?: string,
   ): Promise<any> {
     const videoId = job.data.videoId;
     console.log(job.data);
     for (const resolution of Object.values(VideoQualityEnum)) {
-      await this.optomizeService.optimizeFile(videoId, resolution);
+      const url = await this.optomizeService.optimizeFile(videoId, resolution);
 
       const files = await fs.readdir("./video");
       await Promise.all(
         files.map(async (file) => {
-          if (file.includes(videoId)) {
-            await this.bucketService.uploadFile(
-              await fs.readFile("./video/" + file),
-              file,
-            );
-            await fs.unlink("./video/" + file);
-          }
+          await this.bucketService.uploadFile(
+            await fs.readFile("./video/" + file),
+            file,
+          );
+          await fs.unlink("./video/" + file);
         }),
       );
 
@@ -42,7 +39,7 @@ export class VideoProcessorService extends WorkerHost {
         data: {
           videoId: job.data.id,
           quality: resolution,
-          url: "optimized-" + job.data.videoId + ".m3u8",
+          url,
         },
       });
     }
