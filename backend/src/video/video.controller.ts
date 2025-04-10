@@ -78,6 +78,10 @@ export class VideoController {
 
     videoStream.pipe(res);
   }
+  // @Get('/my')
+  // async getMyVideos(@Query("cursor") cursor?: number) {
+  //   return this.videoService.cursorPagination(cursor, true);
+  // }
   @Get()
   async getVideos(@Query("cursor") cursor?: number) {
     return this.videoService.cursorPagination(cursor);
