@@ -90,9 +90,6 @@ function FileUploadForm() {
       setFile(null)
       setPreview(null)
       setUploadProgress(0)
-
-      // Optionally redirect
-      // router.push("/uploads")
     } catch (err) {
       setError("Failed to upload file. Please try again.")
       console.error(err)
