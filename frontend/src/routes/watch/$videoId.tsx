@@ -43,8 +43,10 @@ function VideoPlayer({videoId} : {videoId: string}) {
   const videoRef = useRef<ReactPlayer>(null)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
-  
 
+  useEffect(()=>{
+    videoRef.current?.seekTo(currentTime)
+  },[currentTime])
   
   const toggleDescription = () => {
     setIsDescriptionExpanded(!isDescriptionExpanded)
@@ -94,7 +96,6 @@ function VideoPlayer({videoId} : {videoId: string}) {
   }
 
   const handleRender = ({ playedSeconds}:{playedSeconds: number})=> { 
-    setCurrentTime(playedSeconds)
     setDuration(videoRef.current?.getDuration() || 0)
   }
 
@@ -137,7 +138,7 @@ function VideoPlayer({videoId} : {videoId: string}) {
         volume={volume}
         width={"100%"}
         height={"100%"}
-      onProgress={handleRender}
+        onProgress={handleRender}
       
         />
        
@@ -197,7 +198,8 @@ function VideoPlayer({videoId} : {videoId: string}) {
                   <DropdownMenuItem key={index} onClick={() => {
                     setVideoUrl(`${import.meta.env.VITE_API_URL}/videos/${quality.url}`)
                     setCurrentQuality(quality.quality)
-                    console.log(quality.url)
+                    setCurrentTime(videoRef?.current?.getCurrentTime()||0)
+                    
                   }}>
                     {quality.quality}
                   </DropdownMenuItem>
