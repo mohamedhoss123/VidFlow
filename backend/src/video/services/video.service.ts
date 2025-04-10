@@ -10,12 +10,14 @@ export class VideoService {
     private readonly prismaService: PrismaService,
     private readonly bucketService: BucketService,
   ) {}
-  create(name: string, url: string, size: number) {
+  create(name: string, size: number, description?: string) {
     return this.prismaService.video.create({
       data: {
         name: name,
         size: size,
         userId: 1,
+
+        description: description || "",
       },
     });
   }
@@ -63,7 +65,6 @@ export class VideoService {
         quality: true,
       },
     });
-    console.log(data);
     return data;
   }
 
