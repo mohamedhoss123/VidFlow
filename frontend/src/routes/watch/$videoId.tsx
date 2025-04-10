@@ -43,8 +43,10 @@ function VideoPlayer({videoId} : {videoId: string}) {
   const videoRef = useRef<ReactPlayer>(null)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
-  
 
+  useEffect(()=>{
+    videoRef.current?.seekTo(currentTime)
+  },[currentTime])
   
   const toggleDescription = () => {
     setIsDescriptionExpanded(!isDescriptionExpanded)
@@ -68,7 +70,6 @@ function VideoPlayer({videoId} : {videoId: string}) {
   },[data])
   useEffect(() => {console.log(videoUrl)}, [videoUrl])
   const togglePlay = () => {
-    console.log(data.quality[0].url)
       setIsPlaying(!isPlaying)
   }
 
@@ -95,7 +96,6 @@ function VideoPlayer({videoId} : {videoId: string}) {
   }
 
   const handleRender = ({ playedSeconds}:{playedSeconds: number})=> { 
-    setCurrentTime(playedSeconds)
     setDuration(videoRef.current?.getDuration() || 0)
   }
 
@@ -138,7 +138,7 @@ function VideoPlayer({videoId} : {videoId: string}) {
         volume={volume}
         width={"100%"}
         height={"100%"}
-      onProgress={handleRender}
+        onProgress={handleRender}
       
         />
        
@@ -194,16 +194,16 @@ function VideoPlayer({videoId} : {videoId: string}) {
               <Ellipsis />
               </DropdownMenuTrigger>
               <DropdownMenuContent className='w-50'>
-                <DropdownMenuItem className='flex justify-between items-center space-x-1.5 h-[1.8rem]'>
-                  <div className='flex space-x-1'>
-                    <AudioLines />
-                    <p>Qualtu</p>
-                  </div>
-                  <div className='flex space-x-1'>
-                    <p>{currentQuality}</p>
-                    <ArrowRight />
-                </div>
-                </DropdownMenuItem>
+                {qualitys.map((quality:any, index) => (
+                  <DropdownMenuItem key={index} onClick={() => {
+                    setVideoUrl(`${import.meta.env.VITE_API_URL}/videos/${quality.url}`)
+                    setCurrentQuality(quality.quality)
+                    setCurrentTime(videoRef?.current?.getCurrentTime()||0)
+                    
+                  }}>
+                    {quality.quality}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
             <button onClick={handleFullscreen} className="p-1 hover:bg-white/10 rounded-full">
@@ -273,6 +273,5 @@ function VideoPlayer({videoId} : {videoId: string}) {
   )
 }
 
-"use client"
 
 

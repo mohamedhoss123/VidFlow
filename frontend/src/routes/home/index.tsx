@@ -4,9 +4,9 @@ import { useInView } from "react-intersection-observer";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import {keepPreviousData, useInfiniteQuery, useQuery} from "@tanstack/react-query"
+import { useInfiniteQuery} from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
-import { createFileRoute, invariant, Link } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { api } from "@/utils/api"
 import { format } from "date-fns";
 
@@ -21,13 +21,10 @@ function RouteComponent() {
 
 export default function MyUploadsPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [cursor,setCursor] = useState(undefined)
   const fetchVideos = async ({pageParam}:{pageParam:number}):Promise<Array<{}>>=> (await api.get("/videos"+(pageParam?`?cursor=${pageParam}`:""))).data
   const {
     data,
-    error,
     fetchNextPage,
-    hasNextPage,
     isFetching,
     status,
   } = useInfiniteQuery({
@@ -103,7 +100,7 @@ export default function MyUploadsPage() {
                   <img
                     src={import.meta.env.VITE_API_URL+"/videos/"+video.thumbnail_url}
                     alt={video.title}
-                    className="w-full h-[180px] object-cover"
+                    className="w-full h-60 object-cover"
                   />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Button variant="secondary" size="icon" className="rounded-full">
