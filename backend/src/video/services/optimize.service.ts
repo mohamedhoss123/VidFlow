@@ -26,7 +26,7 @@ export class OptimizeService {
         "-hls_list_size",
         "0", // No limit on number of segments
         "-hls_segment_filename",
-        `./video/${qualityId}-%03d.ts`, // Segment filename
+        `./video/${qualityId}-%03d.tss`, // Segment filename
         "./video/optimized-" + qualityId + ".m3u8", // Output file
       ],
       {
