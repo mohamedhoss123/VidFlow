@@ -6,6 +6,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { ConfigService } from "@nestjs/config";
 // import { Stream } from "stream";
+
 @Injectable()
 export class BucketService {
   constructor(private readonly configService: ConfigService) {}
@@ -19,7 +20,7 @@ export class BucketService {
     forcePathStyle: true,
   });
 
-  async uploadVideo(file: Buffer, key: string) {
+  async uploadFile(file: Buffer, key: string) {
     await this.client.send(
       new PutObjectCommand({
         Bucket: "files",
