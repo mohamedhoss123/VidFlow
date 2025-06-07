@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { BucketService } from "./bucket.service";
+import { UpdateVideoDto } from "../dto/update-video.dto";
+import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
 export class VideoService {
@@ -8,12 +10,14 @@ export class VideoService {
     private readonly prismaService: PrismaService,
     private readonly bucketService: BucketService,
   ) {}
-  create(name: string, url: string, size: number) {
+  create(name: string, size: number, description?: string) {
     return this.prismaService.video.create({
       data: {
         name: name,
         size: size,
         userId: 1,
+
+        description: description || "",
       },
     });
   }
@@ -29,7 +33,29 @@ export class VideoService {
     if (data.Body) return data.Body;
     else throw new BadRequestException();
   }
+  updateVideo(videoId: number, body: UpdateVideoDto) {
+    return this.prismaService.video.update({
+      where: {
+        id: Number(videoId),
+      },
+      data: {
+        ...body,
+      },
+    });
+  }
 
+  async updateThumpnile(videoId: number, file: Express.Multer.File) {
+    const url = await this.bucketService.uploadFile(file.buffer, uuidv4());
+    const data = await this.prismaService.video.update({
+      where: {
+        id: Number(videoId),
+      },
+      data: {
+        thumbnail_url: url,
+      },
+    });
+    return data;
+  }
   async getVideoInfo(videoId: number) {
     const data = await this.prismaService.video.findUnique({
       where: {
