@@ -1,17 +1,17 @@
 version: "3"
 
 services:
-  mysql:
-    image: mysql:8.0
+  postgres:
+    image: postgres:17-alpine
     environment:
-      MYSQL_USER: mohamed
-      MYSQL_PASSWORD: password
-      MYSQL_DATABASE: vidflow
-      MYSQL_ROOT_PASSWORD: password
+      POSTGRES_USER: mohamed
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: vidflow
+      POSTGRES_ROOT_PASSWORD: password
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "3306:3306"
+      - "5432:5432"
   minio:
     image: minio/minio
     container_name: minio
@@ -44,7 +44,7 @@ services:
     env_file:
       - ./backend/.env
     depends_on:
-      - mysql
+      - postgres
       - redis
 
   frontend:
@@ -60,5 +60,5 @@ services:
       - NODE_ENV=development
 
 volumes:
-  mysql_data:
+  postgres_data:
   minio_data:
