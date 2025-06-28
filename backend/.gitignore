@@ -58,5 +58,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 *.webm
 *.mp4
 ./video/
-
+.pnpm-store
+*.tss
+*.m3u8
 temp_input

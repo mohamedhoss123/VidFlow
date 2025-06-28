@@ -1,10 +1,12 @@
 import "react"
 import { createFileRoute } from '@tanstack/react-router'
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/utils/api";
 
 
 export const Route = createFileRoute('/video/edit/$videoId')({
@@ -21,7 +23,16 @@ function EditVideoPage() {
   const [thumbnail, setThumbnail] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const {videoId} = Route.useParams()
+  const {data} = useQuery({
+    queryKey: ['video'],
+    queryFn: async () =>  api.get(`/videos/${videoId}/info`)
+    
+  });
 
+  useEffect(() => {
+    console.log(data);
+  }, [data]);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle form submission logic here

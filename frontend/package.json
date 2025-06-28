@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "vite --port 3001",
+    "start": "vite",
     "build": "vite build && tsc",
     "serve": "vite preview",
     "test": "vitest run"

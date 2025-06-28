@@ -15,7 +15,6 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useMobile } from "@/hooks/use-mobile"
 import { Link } from '@tanstack/react-router'
-import { api } from "@/utils/api"
 export function Navbar() {
         const navigate = useNavigate()
   const isMobile = useMobile()
@@ -29,8 +28,8 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/home", label: "Home", icon: Home },
-    { href: "/video/my-uploads", label: "My Uploads", icon: FileText },
-    { href: "/video/upload", label: "Upload New", icon: Upload },
+    { href: "/video/my-uploads", label: "trends", icon: FileText },
+    { href: "/video/upload", label: "catigory", icon: Upload },
   ]
 
   return (
@@ -117,6 +116,26 @@ export function Navbar() {
             <DropdownMenuItem onClick={() => navigate({to:"/"})}>
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+            <Link
+                        to={"/video/my-uploads"}
+                        className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <FileText  />
+                        My Uploads
+                      </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+            <Link
+                        to={"/video/upload"}
+                        className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Upload className="h-4 w-4" />
+                        Upload Now
+                      </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

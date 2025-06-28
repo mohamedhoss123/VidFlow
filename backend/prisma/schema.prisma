@@ -30,6 +30,7 @@ model Video{
   userId    Int
   status VideoStatus @default(PROCESSING)
   thumbnail_url String?
+  description String?
   size Int
   quality VideoQuality[]
   createdAt DateTime @default(now())  
