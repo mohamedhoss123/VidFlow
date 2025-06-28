@@ -43,6 +43,9 @@ services:
       - ./backend:/app:z
     env_file:
       - ./backend/.env
+    depends_on:
+      - mysql
+      - redis
 
   frontend:
     build:
