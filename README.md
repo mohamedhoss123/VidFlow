@@ -11,8 +11,7 @@ VidFlow is a video hosting and streaming platform that allows users to upload, s
 - **Storage:** 
 MinIO
 - **Video Processing:** FFmpeg
-- **Authentication:** OAuth, JWT, Social Logins
-- **API:** GraphQL
+
 
 ### **2. Frontend**
 
