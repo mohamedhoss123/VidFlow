@@ -524,3 +524,16 @@ services:
       
       - "127.0.0.1:8001:8001"
       - "127.0.0.1:8444:8444"
+  optimize-service:
+    build:
+      context: ./optimize-service
+      dockerfile: Dockerfile
+    volumes:
+      - ./optimize-service:/app
+    ports:
+      - "8080:8080"
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
