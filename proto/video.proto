@@ -12,19 +12,11 @@ message CreateVideoRequest {
 }
 
 message VideoQuality{
-    Quality quality = 1;
+    string quality = 1;
     string video_id = 2;
     string source = 3;
 }
 
-enum Quality {
-  p144 = 0;
-  p240 = 1;
-  p360 = 2;
-  p480 = 3;
-  p720 = 4;
-  p1080 = 5;
-}
 
 message VideoReadyRequest {
 	string video_id = 1;

@@ -1,0 +1,594 @@
+# Docker Compose file for VidFlow
+# Uses latest versions with security best practices
+# RabbitMQ 4.1.2 with Management Plugin
+# PostgreSQL 17.5 with enhanced security
+
+# Networks - Custom bridge network for service isolation
+networks:
+  vidflow-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: vidflow-br0
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes - Named volumes with proper permissions
+volumes:
+  postgres-data:
+    driver: local
+  rabbitmq-data:
+    driver: local
+  rabbitmq-logs:
+    driver: local
+  minio-data:
+    driver: local
+  elasticsearch-data:
+    driver: local
+  elasticsearch-logs:
+    driver: local
+
+# Secrets - Secure password management
+secrets:
+  postgres-password:
+    file: ./secrets/postgres_password.txt
+  rabbitmq-password:
+    file: ./secrets/rabbitmq_password.txt
+  minio-root-user:
+    file: ./secrets/minio_root_user.txt
+  minio-root-password:
+    file: ./secrets/minio_root_password.txt
+  elasticsearch-password:
+    file: ./secrets/elasticsearch_password.txt
+
+services:
+  # Init container to fix permissions
+  init-permissions:
+    image: busybox:1.36
+    container_name: vidflow-init-permissions
+    restart: "no"
+    volumes:
+      - postgres-data:/postgres-data
+      - rabbitmq-data:/rabbitmq-data
+      - rabbitmq-logs:/rabbitmq-logs
+      - minio-data:/minio-data
+      - elasticsearch-data:/elasticsearch-data
+      - elasticsearch-logs:/elasticsearch-logs
+    command: |
+      sh -c "
+        echo 'Setting up volume permissions...'
+        
+        # PostgreSQL data directory
+        chown -R 999:999 /postgres-data
+        chmod -R 755 /postgres-data
+        
+        # RabbitMQ data and logs
+        chown -R 999:999 /rabbitmq-data /rabbitmq-logs
+        chmod -R 755 /rabbitmq-data /rabbitmq-logs
+        
+        # Create and fix Erlang cookie permissions
+        mkdir -p /rabbitmq-data
+        echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /rabbitmq-data/.erlang.cookie
+        chown 999:999 /rabbitmq-data/.erlang.cookie
+        chmod 600 /rabbitmq-data/.erlang.cookie
+        
+        # MinIO data directory
+        chown -R 1001:1001 /minio-data
+        chmod -R 755 /minio-data
+        
+        # Elasticsearch data and logs
+        chown -R 1000:1000 /elasticsearch-data /elasticsearch-logs
+        chmod -R 755 /elasticsearch-data /elasticsearch-logs
+        
+        echo 'Volume permissions setup completed successfully!'
+      "
+
+  # PostgreSQL 17.5 - Latest stable version with security hardening
+  postgres:
+    image: postgres:17.5-bookworm
+    container_name: vidflow-postgres
+    restart: unless-stopped
+
+    # Security: Run as non-root user
+    user: "999:999"  # postgres user
+
+    # Security: Read-only root filesystem with writable tmp
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql:uid=999,gid=999,mode=1777
+
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+    # Security: Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+
+    # Security: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Environment variables
+    environment:
+      POSTGRES_DB: vidflow
+      POSTGRES_USER: vidflow_user
+      POSTGRES_PASSWORD: "VidFlow_PostgreSQL_2024!"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      # Security: Enhanced logging
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      # Security: Connection limits
+      POSTGRES_MAX_CONNECTIONS: 100
+
+    # Remove secrets for Windows compatibility  
+    # secrets:
+    #   - postgres-password
+
+    # Volumes
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+
+    # Network
+    networks:
+      - vidflow-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vidflow_user -d vidflow"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Dependencies
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+
+  # RabbitMQ 4.1.2 with Management Plugin - Latest version with security
+  rabbitmq:
+    image: rabbitmq:4.1.2-management
+    container_name: vidflow-rabbitmq
+    restart: unless-stopped
+
+    # Security: Tmpfs for temporary files (removed read_only due to RabbitMQ 4.x compatibility)
+    tmpfs:
+      - /tmp
+
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+    # Security: Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+
+    # Security: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Environment variables (deprecated variables removed, using config file instead)
+    environment:
+      # Only keep essential environment variables
+      RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq.conf
+      # Erlang cookie for cluster authentication
+      RABBITMQ_ERLANG_COOKIE: VIDFLOW_RABBITMQ_COOKIE_2025
+
+    # Secrets (removed since we're using config file)
+    # secrets:
+    #   - rabbitmq-password
+
+    # Ports - Only expose necessary ports
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI port
+
+    # Volumes
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - rabbitmq-logs:/var/log/rabbitmq
+      - ./rabbitmq/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+
+    # Custom command to ensure proper Erlang cookie setup
+    command: >
+      bash -c "
+        # Ensure cookie file exists with correct permissions
+        if [ ! -f /var/lib/rabbitmq/.erlang.cookie ]; then
+          echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /var/lib/rabbitmq/.erlang.cookie
+          chmod 600 /var/lib/rabbitmq/.erlang.cookie
+          chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
+        fi
+        # Start RabbitMQ normally
+        docker-entrypoint.sh rabbitmq-server
+      "
+
+    # Network
+    networks:
+      - vidflow-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Security: Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Dependencies
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+
+  # MinIO S3-Compatible Object Storage - Latest version with security
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
+    container_name: vidflow-minio
+    restart: unless-stopped
+
+    # Security: Run as non-root user
+    user: "1001:1001"  # minio user
+
+    # Security: Tmpfs for temporary files (removed read_only as MinIO needs write access to /data)
+    tmpfs:
+      - /tmp:uid=1001,gid=1001,mode=1777
+
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+    # Security: Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+
+    # Security: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Environment variables
+    environment:
+      # Security: Custom root credentials - Using env vars for Windows compatibility
+      MINIO_ROOT_USER: "vidflow_admin"
+      MINIO_ROOT_PASSWORD: "VidFlow_MinIO_2024!"
+
+      # Security: Server configuration
+      MINIO_SERVER_URL: http://localhost:9000
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:9001
+
+      # Security: API configuration
+      MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:3000,http://localhost:8080"
+
+      # Performance settings
+      MINIO_CACHE: "off"
+      MINIO_PROMETHEUS_AUTH_TYPE: "public"
+
+    # Remove secrets for Windows compatibility
+    # secrets:
+    #   - minio-root-user
+    #   - minio-root-password
+
+    # Ports
+    ports:
+      - "9000:9000"   # MinIO API
+      - "9001:9001"   # MinIO Console
+
+    # Volumes
+    volumes:
+      - minio-data:/data
+
+    # Network
+    networks:
+      - vidflow-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Security: Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Command
+    command: server /data --console-address ":9001"
+    
+    # Dependencies
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+
+  # Mailpit - Email Testing Tool - Latest version with security
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: vidflow-mailpit
+    restart: unless-stopped
+
+    # Security: Run as non-root user
+    user: "1001:1001"  # mailpit user
+
+    # Security: Read-only root filesystem with writable areas
+    read_only: true
+    tmpfs:
+      - /tmp:uid=1001,gid=1001,mode=1777
+      - /var/lib/mailpit:uid=1001,gid=1001,mode=755
+
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
+    # Security: Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+    # Security: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Environment variables
+    environment:
+      # Security: Authentication (optional)
+      MP_UI_AUTH_FILE: ""  # Set to enable basic auth
+      MP_UI_TLS_CERT: ""   # Set for HTTPS
+      MP_UI_TLS_KEY: ""    # Set for HTTPS
+
+      # Configuration
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      MP_SMTP_BIND_ADDR: "0.0.0.0:1025"
+      MP_UI_BIND_ADDR: "0.0.0.0:8025"
+
+      # Storage
+      MP_DATA_FILE: "/tmp/mailpit.db"
+      MP_MAX_MESSAGES: "500"
+
+      # Additional settings
+      MP_WEBROOT: ""
+
+    # Ports
+    ports:
+      - "1025:1025"   # SMTP port
+      - "8025:8025"   # Web UI port
+
+    # Network
+    networks:
+      - vidflow-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8025/api/v1/info || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # Security: Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Elasticsearch - Search and Analytics Engine - Latest version with security
+  elasticsearch:
+    image: elasticsearch:8.16.2
+    container_name: vidflow-elasticsearch
+    restart: unless-stopped
+
+    # Security: Run as non-root user
+    user: "1000:1000"  # elasticsearch user
+
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+    # Security: Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+      - SYS_CHROOT
+
+    # Security: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Environment variables
+    environment:
+      # Cluster configuration
+      discovery.type: single-node
+      cluster.name: vidflow-cluster
+      node.name: vidflow-node-1
+
+      # Security: Authentication - Use environment variable instead of file for Windows compatibility
+      ELASTIC_PASSWORD: "VidFlow_Elasticsearch_2024!"
+      xpack.security.enabled: "true"
+      xpack.security.enrollment.enabled: "false"
+
+      # Security: TLS/SSL (disabled for development, enable for production)
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+
+      # Memory settings
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+
+      # Network settings
+      network.host: "0.0.0.0"
+      http.port: "9200"
+      transport.port: "9300"
+
+      # Security: Disable ML and monitoring for development
+      xpack.ml.enabled: "false"
+      xpack.monitoring.collection.enabled: "false"
+
+      # Performance settings
+      bootstrap.memory_lock: "false"
+      indices.query.bool.max_clause_count: "10000"
+
+    # Remove secrets for Windows compatibility
+    # secrets:
+    #   - elasticsearch-password
+
+    # Ports
+    ports:
+      - "9200:9200"   # HTTP API
+      - "9300:9300"   # Transport
+
+    # Volumes
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+      - elasticsearch-logs:/usr/share/elasticsearch/logs
+
+    # Network
+    networks:
+      - vidflow-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+    # Security: Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Ulimits for Elasticsearch
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    
+    # Dependencies
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+        
+  kong:
+    image: kong:3.8
+    container_name: vidflow-kong
+    restart: unless-stopped
+    volumes:
+      - ./kong/go-auth:/usr/local/bin/go-auth
+      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
+      - KONG_PLUGINS=go-auth
+      - KONG_PLUGINSERVER_NAMES=go-auth
+      - KONG_PLUGINSERVER_GO_AUTH_QUERY_CMD=/usr/local/bin/go-auth -dump
+      - KONG_LOG_LEVEL=info
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+      - "8002:8002"
+      - "127.0.0.1:8001:8001"
+      - "127.0.0.1:8444:8444"
+    networks:
+      - vidflow-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      optimize-service:
+        condition: service_started
+  optimize-service:
+    build:
+      context: ./optimize-service
+      dockerfile: Dockerfile
+    container_name: vidflow-optimize-service
+    restart: unless-stopped
+    volumes:
+      - ./optimize-service:/app
+    ports:
+      - "8080:8080"
+    environment:
+      - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
+    networks:
+      - vidflow-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
