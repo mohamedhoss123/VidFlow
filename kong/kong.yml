@@ -1,0 +1,14 @@
+_format_version: "2.1"
+
+services:
+  - name: gist-service
+    url: http://google.com
+
+    routes:
+      - name: gists-route
+        paths:
+          - /verify
+    plugins:
+      - name: go-auth
+        config:
+          secret: my-secret-key
