@@ -42,6 +42,47 @@ secrets:
     file: ./secrets/elasticsearch_password.txt
 
 services:
+  # Init container to fix permissions
+  init-permissions:
+    image: busybox:1.36
+    container_name: vidflow-init-permissions
+    restart: "no"
+    volumes:
+      - postgres-data:/postgres-data
+      - rabbitmq-data:/rabbitmq-data
+      - rabbitmq-logs:/rabbitmq-logs
+      - minio-data:/minio-data
+      - elasticsearch-data:/elasticsearch-data
+      - elasticsearch-logs:/elasticsearch-logs
+    command: |
+      sh -c "
+        echo 'Setting up volume permissions...'
+        
+        # PostgreSQL data directory
+        chown -R 999:999 /postgres-data
+        chmod -R 755 /postgres-data
+        
+        # RabbitMQ data and logs
+        chown -R 999:999 /rabbitmq-data /rabbitmq-logs
+        chmod -R 755 /rabbitmq-data /rabbitmq-logs
+        
+        # Create and fix Erlang cookie permissions
+        mkdir -p /rabbitmq-data
+        echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /rabbitmq-data/.erlang.cookie
+        chown 999:999 /rabbitmq-data/.erlang.cookie
+        chmod 600 /rabbitmq-data/.erlang.cookie
+        
+        # MinIO data directory
+        chown -R 1001:1001 /minio-data
+        chmod -R 755 /minio-data
+        
+        # Elasticsearch data and logs
+        chown -R 1000:1000 /elasticsearch-data /elasticsearch-logs
+        chmod -R 755 /elasticsearch-data /elasticsearch-logs
+        
+        echo 'Volume permissions setup completed successfully!'
+      "
+
   # PostgreSQL 17.5 - Latest stable version with security hardening
   postgres:
     image: postgres:17.5-bookworm
@@ -55,7 +96,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-      - /var/run/postgresql
+      - /var/run/postgresql:uid=999,gid=999,mode=1777
 
     # Security: Resource limits
     deploy:
@@ -85,16 +126,16 @@ services:
     environment:
       POSTGRES_DB: vidflow
       POSTGRES_USER: vidflow_user
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+      POSTGRES_PASSWORD: "VidFlow_PostgreSQL_2024!"
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
       # Security: Enhanced logging
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       # Security: Connection limits
       POSTGRES_MAX_CONNECTIONS: 100
 
-    # Secrets
-    secrets:
-      - postgres-password
+    # Remove secrets for Windows compatibility  
+    # secrets:
+    #   - postgres-password
 
     # Volumes
     volumes:
@@ -113,12 +154,10 @@ services:
       retries: 3
       start_period: 60s
 
-    # Security: Logging configuration
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    # Dependencies
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
 
   # RabbitMQ 4.1.2 with Management Plugin - Latest version with security
   rabbitmq:
@@ -126,14 +165,9 @@ services:
     container_name: vidflow-rabbitmq
     restart: unless-stopped
 
-    # Security: Run as non-root user
-    user: "999:999"  # rabbitmq user
-
-    # Security: Read-only root filesystem with writable areas
-    read_only: true
+    # Security: Tmpfs for temporary files (removed read_only due to RabbitMQ 4.x compatibility)
     tmpfs:
       - /tmp
-      - /var/lib/rabbitmq/mnesia
 
     # Security: Resource limits
     deploy:
@@ -160,31 +194,16 @@ services:
     security_opt:
       - no-new-privileges:true
 
-    # Environment variables
+    # Environment variables (deprecated variables removed, using config file instead)
     environment:
-      # Security: Custom admin user (default guest user will be disabled)
-      RABBITMQ_DEFAULT_USER: vidflow_admin
-      RABBITMQ_DEFAULT_PASS_FILE: /run/secrets/rabbitmq-password
+      # Only keep essential environment variables
+      RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq.conf
+      # Erlang cookie for cluster authentication
+      RABBITMQ_ERLANG_COOKIE: VIDFLOW_RABBITMQ_COOKIE_2025
 
-      # Security: Virtual host configuration
-      RABBITMQ_DEFAULT_VHOST: vidflow
-
-      # Security: Management plugin security headers
-      RABBITMQ_MANAGEMENT_SSL_HONOR_CIPHER_ORDER: "true"
-      RABBITMQ_MANAGEMENT_SSL_HONOR_ECC_ORDER: "true"
-      RABBITMQ_MANAGEMENT_SSL_CLIENT_RENEGOTIATION: "false"
-      RABBITMQ_MANAGEMENT_SSL_SECURE_RENEGOTIATE: "true"
-
-      # Security: Disable guest user
-      RABBITMQ_GUEST_USER: "false"
-
-      # Performance and security settings
-      RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 0.6
-      RABBITMQ_DISK_FREE_LIMIT: 2GB
-
-    # Secrets
-    secrets:
-      - rabbitmq-password
+    # Secrets (removed since we're using config file)
+    # secrets:
+    #   - rabbitmq-password
 
     # Ports - Only expose necessary ports
     ports:
@@ -195,7 +214,20 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
       - rabbitmq-logs:/var/log/rabbitmq
-      - ./rabbitmq/config:/etc/rabbitmq:ro
+      - ./rabbitmq/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+
+    # Custom command to ensure proper Erlang cookie setup
+    command: >
+      bash -c "
+        # Ensure cookie file exists with correct permissions
+        if [ ! -f /var/lib/rabbitmq/.erlang.cookie ]; then
+          echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /var/lib/rabbitmq/.erlang.cookie
+          chmod 600 /var/lib/rabbitmq/.erlang.cookie
+          chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
+        fi
+        # Start RabbitMQ normally
+        docker-entrypoint.sh rabbitmq-server
+      "
 
     # Network
     networks:
@@ -218,6 +250,8 @@ services:
 
     # Dependencies
     depends_on:
+      init-permissions:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
 
@@ -230,11 +264,9 @@ services:
     # Security: Run as non-root user
     user: "1001:1001"  # minio user
 
-    # Security: Read-only root filesystem with writable areas
-    read_only: true
+    # Security: Tmpfs for temporary files (removed read_only as MinIO needs write access to /data)
     tmpfs:
-      - /tmp
-      - /opt/bitnami/minio/tmp
+      - /tmp:uid=1001,gid=1001,mode=1777
 
     # Security: Resource limits
     deploy:
@@ -263,9 +295,9 @@ services:
 
     # Environment variables
     environment:
-      # Security: Custom root credentials via secrets
-      MINIO_ROOT_USER_FILE: /run/secrets/minio-root-user
-      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio-root-password
+      # Security: Custom root credentials - Using env vars for Windows compatibility
+      MINIO_ROOT_USER: "vidflow_admin"
+      MINIO_ROOT_PASSWORD: "VidFlow_MinIO_2024!"
 
       # Security: Server configuration
       MINIO_SERVER_URL: http://localhost:9000
@@ -278,10 +310,10 @@ services:
       MINIO_CACHE: "off"
       MINIO_PROMETHEUS_AUTH_TYPE: "public"
 
-    # Secrets
-    secrets:
-      - minio-root-user
-      - minio-root-password
+    # Remove secrets for Windows compatibility
+    # secrets:
+    #   - minio-root-user
+    #   - minio-root-password
 
     # Ports
     ports:
@@ -313,6 +345,11 @@ services:
 
     # Command
     command: server /data --console-address ":9001"
+    
+    # Dependencies
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
 
   # Mailpit - Email Testing Tool - Latest version with security
   mailpit:
@@ -326,8 +363,8 @@ services:
     # Security: Read-only root filesystem with writable areas
     read_only: true
     tmpfs:
-      - /tmp
-      - /var/lib/mailpit
+      - /tmp:uid=1001,gid=1001,mode=1777
+      - /var/lib/mailpit:uid=1001,gid=1001,mode=755
 
     # Security: Resource limits
     deploy:
@@ -434,8 +471,8 @@ services:
       cluster.name: vidflow-cluster
       node.name: vidflow-node-1
 
-      # Security: Authentication
-      ELASTIC_PASSWORD_FILE: /run/secrets/elasticsearch-password
+      # Security: Authentication - Use environment variable instead of file for Windows compatibility
+      ELASTIC_PASSWORD: "VidFlow_Elasticsearch_2024!"
       xpack.security.enabled: "true"
       xpack.security.enrollment.enabled: "false"
 
@@ -459,9 +496,9 @@ services:
       bootstrap.memory_lock: "false"
       indices.query.bool.max_clause_count: "10000"
 
-    # Secrets
-    secrets:
-      - elasticsearch-password
+    # Remove secrets for Windows compatibility
+    # secrets:
+    #   - elasticsearch-password
 
     # Ports
     ports:
@@ -500,10 +537,18 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+    
+    # Dependencies
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+        
   kong:
     image: kong:3.8
+    container_name: vidflow-kong
+    restart: unless-stopped
     volumes:
-      - ./kong/go-auth:/usr/local/bin/go-auth 
+      - ./kong/go-auth:/usr/local/bin/go-auth
       - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
     environment:
       - KONG_DATABASE=off
@@ -521,19 +566,29 @@ services:
       - "8000:8000"
       - "8443:8443"
       - "8002:8002"
-      
       - "127.0.0.1:8001:8001"
       - "127.0.0.1:8444:8444"
+    networks:
+      - vidflow-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      optimize-service:
+        condition: service_started
   optimize-service:
     build:
       context: ./optimize-service
       dockerfile: Dockerfile
+    container_name: vidflow-optimize-service
+    restart: unless-stopped
     volumes:
       - ./optimize-service:/app
     ports:
       - "8080:8080"
     environment:
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
+    networks:
+      - vidflow-network
     depends_on:
       rabbitmq:
         condition: service_healthy
