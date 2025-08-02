@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package video;
+
+option go_package = "proto/video";
+message VideoResponse {
+
+}
+message CreateVideoRequest {
+	string url = 1;
+	string user_id = 2;
+}
+
+message VideoQuality{
+    string quality = 1;
+    string video_id = 2;
+    string source = 3;
+}
+
+
+message VideoReadyRequest {
+	string video_id = 1;
+    repeated VideoQuality quality = 2;
+}
+
+service VideoService {
+	rpc CreateVideo (CreateVideoRequest) returns (VideoResponse) {}
+    rpc MakeVideoReady (VideoReadyRequest) returns (VideoResponse) {}
+}
