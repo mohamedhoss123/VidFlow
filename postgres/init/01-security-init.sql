@@ -21,13 +21,14 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA vidflow_app GRANT ALL ON SEQUENCES TO vidflow
 -- Security: Enable row level security by default for new tables
 ALTER DATABASE vidflow SET row_security = on;
 
--- Security: Set secure defaults
-ALTER DATABASE vidflow SET log_statement = 'mod';
-ALTER DATABASE vidflow SET log_min_duration_statement = 1000;
-ALTER DATABASE vidflow SET log_connections = on;
-ALTER DATABASE vidflow SET log_disconnections = on;
-ALTER DATABASE vidflow SET log_checkpoints = on;
-ALTER DATABASE vidflow SET log_lock_waits = on;
+-- Note: Database-level logging parameters removed as they cannot be set after connection start
+-- These should be configured in postgresql.conf instead:
+-- log_statement = 'mod'
+-- log_min_duration_statement = 1000  
+-- log_checkpoints = on
+-- log_lock_waits = on
+-- log_connections = on
+-- log_disconnections = on
 
 -- Create audit table for security monitoring
 CREATE TABLE IF NOT EXISTS vidflow_app.audit_log (
