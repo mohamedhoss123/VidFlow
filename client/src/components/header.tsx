@@ -1,32 +1,38 @@
-import { Avatar } from "@radix-ui/react-avatar";
 import { Video } from "lucide-react";
-import { AvatarFallback, AvatarImage } from "./ui/avatar";
 import Image from "next/image";
-import userImage from "~/app/assets/avatar.png"
+import Link from "next/link";
+import userImage from "~/app/assets/avatar.png";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 export default function Header() {
   return (
-    <header className="flex items-center justify-between px-15 py-5">
-      <nav className="flex items-center justify-between w-full">
-
+    <header className="flex items-center justify-between px-15 py-3 border-b">
+      <nav className="flex items-center w-full gap-5">
         <div className="flex gap-1 items-center">
-          <Video />
+          {/* <Video /> */}
 
           <span className="text-xl font-bold">VidFlow</span>
         </div>
 
-        <ul className="flex gap-4 items-center">
+        <ul className="flex gap-5 items-center">
           <li>
-
+            <Link href="#">Home</Link>
           </li>
           <li>
-
+            <Link href="#">Subscriptions</Link>
           </li>
           <li>
-
+            <Link href="#">Library</Link>
           </li>
         </ul>
-      <Image className="rounded-full" src={userImage} alt="user" width={40} height={40} />
+        <Avatar className="ms-auto">
+
+          <Image src={userImage}
+            width={60}
+            height={60}
+            alt="@shadcn" />
+          <AvatarFallback>CN</AvatarFallback>
+        </Avatar>
       </nav>
     </header>
   );
