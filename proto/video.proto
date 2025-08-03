@@ -9,6 +9,7 @@ message VideoResponse {
 message CreateVideoRequest {
 	string url = 1;
 	string user_id = 2;
+    string description = 3;
 }
 
 message VideoQuality{
