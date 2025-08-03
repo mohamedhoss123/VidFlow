@@ -9,6 +9,7 @@ import (
 	"os/exec"
 )
 
+// Optimize not Optomize
 func Optomize(url string) {
 	for key, resolution := range config.Resolutions {
 		clearDir()
