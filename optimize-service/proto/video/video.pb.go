@@ -61,6 +61,7 @@ type CreateVideoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -105,6 +106,13 @@ func (x *CreateVideoRequest) GetUrl() string {
 func (x *CreateVideoRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
+	}
+	return ""
+}
+
+func (x *CreateVideoRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
 	}
 	return ""
 }
@@ -226,10 +234,11 @@ var File_video_proto protoreflect.FileDescriptor
 const file_video_proto_rawDesc = "" +
 	"\n" +
 	"\vvideo.proto\x12\x05video\"\x0f\n" +
-	"\rVideoResponse\"?\n" +
+	"\rVideoResponse\"a\n" +
 	"\x12CreateVideoRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\"[\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\"[\n" +
 	"\fVideoQuality\x12\x18\n" +
 	"\aquality\x18\x01 \x01(\tR\aquality\x12\x19\n" +
 	"\bvideo_id\x18\x02 \x01(\tR\avideoId\x12\x16\n" +
