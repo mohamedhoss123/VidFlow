@@ -593,3 +593,56 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+
+  main-service:
+    build:
+      context: ./main-service
+      dockerfile: Dockerfile
+    container_name: vidflow-main-service
+    restart: unless-stopped
+    ports:
+      - "50051:50051"  # gRPC port
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://vidflow_user:VidFlow_PostgreSQL_2024!@postgres:5432/vidflow
+      - LOG_LEVEL=info
+    networks:
+      - vidflow-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "node.*main"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  upload-service:
+    build:
+      context: ./upload-service
+      dockerfile: Dockerfile
+    container_name: vidflow-upload-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - HTTP_PORT=8081
+      - GRPC_MAIN_SERVICE_ADDR=main-service:50051
+      - MAX_FILE_SIZE=524288000  # 500MB
+      - ALLOWED_FILE_TYPES=video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm,video/mkv
+      - UPLOAD_DIR=/tmp/uploads
+      - LOG_LEVEL=info
+    volumes:
+      - ./upload-service/uploads:/tmp/uploads
+    networks:
+      - vidflow-network
+    depends_on:
+      main-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
