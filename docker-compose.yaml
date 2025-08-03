@@ -121,7 +121,8 @@ services:
     # Security: Prevent privilege escalation
     security_opt:
       - no-new-privileges:true
-
+    ports:
+      - "5432:5432"
     # Environment variables
     environment:
       POSTGRES_DB: vidflow

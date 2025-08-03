@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package video;
+
+service VideoService {
+  rpc CreateVideo (CreateVideoRequest) returns (VideoResponse);
+}
+
+message CreateVideoRequest {
+  string title = 1;
+  string url = 2;
+}
+
+message VideoResponse {
+  string id = 1;
+  string title = 2;
+  string url = 3;
+}

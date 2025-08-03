@@ -3,7 +3,8 @@ PROTO_DIR := ../proto
 PROTO_FILES := $(wildcard $(PROTO_DIR)/*.proto)
 
 GO_OUT_DIRS := ../optimize-service
-TS_OUT_DIRS := 
+TS_OUT_DIRS := ../main-service/src/common/proto
+TS_OUT_PROTO := ../main-service/src/
 PROTOC_GEN_GO := $(shell go env GOPATH)/bin/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(shell go env GOPATH)/bin/protoc-gen-go-grpc
 PROTOC_GEN_TS := node_modules/.bin/protoc-gen-ts_proto
@@ -43,9 +44,11 @@ proto-ts: $(PROTO_FILES)
 				--proto_path=$(PROTO_DIR) \
 				--ts_out=grpc_nestjs:$$dir \
 				$$proto; \
-		done \
+		done; \
 	done
+	@cp -r $(PROTO_DIR) $(TS_OUT_PROTO)
 
+	
 clean:
 	@echo "Cleaning generated proto files..."
 	@for dir in $(GO_OUT_DIRS); do \
