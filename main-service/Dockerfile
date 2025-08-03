@@ -1,5 +1,9 @@
+# Alternative Solution 2: Updated Alpine with Latest Security Patches
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:22-alpine3.20 AS builder
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
 
 # Set working directory
 WORKDIR /app
@@ -23,7 +27,7 @@ RUN pnpm prisma generate
 RUN pnpm run build
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:22-alpine3.20 AS production
 
 # Create non-root user first
 RUN addgroup -g 1001 -S appgroup && \
