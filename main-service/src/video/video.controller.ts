@@ -1,17 +1,18 @@
-import { Injectable } from "@nestjs/common";
+import { Controller } from '@nestjs/common';
+import { GrpcMethod, MessagePattern, Payload } from '@nestjs/microservices';
+import { VideoService } from './video.service';
+import { CreateVideoDto } from './dto/create-video.dto';
+import { UpdateVideoDto } from './dto/update-video.dto';
+import { CreateVideoRequest } from 'src/common/proto/video';
 
-@Injectable()
-export class VideoService {
-  constructor(private prisma: PrismaService) {}
+@Controller()
+export class VideoController {
+  constructor(private readonly videoService: VideoService) {}
 
-  async createVideo(data: { title: string; url: string }) {
-    return this.prisma.video.create({ data });
+  @GrpcMethod('VideoService', 'CreateVideo')
+
+  create(@Payload() createVideoDto: CreateVideoRequest) {
+    return this.videoService.create(createVideoDto);
   }
 
-  async markOptimized(videoId: string) {
-    return this.prisma.video.update({
-      where: { id: videoId },
-      data: { optimized: true },
-    });
-  }
 }
