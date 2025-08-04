@@ -12,6 +12,7 @@ async function bootstrap() {
       options: {
         package: 'video',
         protoPath: join(__dirname, 'proto/video.proto'),
+        url: '0.0.0.0:50051',
       },
     },
   );  
