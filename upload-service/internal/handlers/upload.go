@@ -4,42 +4,44 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
+
+	"vidflow/upload-service/internal/config"
+	"vidflow/upload-service/internal/services"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"vidflow/upload-service/internal/config"
-	"vidflow/upload-service/internal/services"
 )
 
 // UploadHandler handles video file uploads
 type UploadHandler struct {
-	config     *config.Config
-	grpcClient *services.GRPCClient
-	logger     *logrus.Logger
+	config          *config.Config
+	grpcClient      *services.GRPCClient
+	minioService    *services.MinIOService
+	rabbitmqService *services.RabbitMQService
+	logger          *logrus.Logger
 }
 
 // NewUploadHandler creates a new upload handler
-func NewUploadHandler(cfg *config.Config, grpcClient *services.GRPCClient, logger *logrus.Logger) *UploadHandler {
+func NewUploadHandler(cfg *config.Config, grpcClient *services.GRPCClient, minioService *services.MinIOService, rabbitmqService *services.RabbitMQService, logger *logrus.Logger) *UploadHandler {
 	return &UploadHandler{
-		config:     cfg,
-		grpcClient: grpcClient,
-		logger:     logger,
+		config:          cfg,
+		grpcClient:      grpcClient,
+		minioService:    minioService,
+		rabbitmqService: rabbitmqService,
+		logger:          logger,
 	}
 }
 
 // UploadResponse represents the response for successful uploads
 type UploadResponse struct {
-	Success   bool   `json:"success"`
-	VideoID   string `json:"video_id,omitempty"`
-	Message   string `json:"message"`
-	Status    string `json:"status,omitempty"`
-	FileURL   string `json:"file_url,omitempty"`
+	Success bool   `json:"success"`
+	VideoID string `json:"video_id,omitempty"`
+	Message string `json:"message"`
+	Status  string `json:"status,omitempty"`
+	FileURL string `json:"file_url,omitempty"`
 }
 
 // ErrorResponse represents error responses
@@ -89,36 +91,34 @@ func (h *UploadHandler) HandleUpload(w http.ResponseWriter, r *http.Request) {
 
 	// Generate unique filename
 	videoID := uuid.New().String()
-	ext := filepath.Ext(fileHeader.Filename)
-	filename := fmt.Sprintf("%s%s", videoID, ext)
-	filePath := filepath.Join(h.config.UploadDir, filename)
+	objectName := h.minioService.GenerateObjectName(fileHeader.Filename, videoID)
 
-	// Ensure upload directory exists
-	if err := os.MkdirAll(h.config.UploadDir, 0755); err != nil {
-		h.logger.WithError(err).Error("Failed to create upload directory")
-		h.sendErrorResponse(w, "Failed to prepare upload directory", "STORAGE_ERROR", http.StatusInternalServerError)
+	// Upload file to MinIO
+	ctx := context.Background()
+	fileURL, err := h.minioService.UploadFile(ctx, file, fileHeader, objectName)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to upload file to MinIO")
+		h.sendErrorResponse(w, "Failed to upload file to storage", "STORAGE_ERROR", http.StatusInternalServerError)
 		return
 	}
-
-	// Save file to temporary location
-	if err := h.saveFile(file, filePath); err != nil {
-		h.logger.WithError(err).Error("Failed to save uploaded file")
-		h.sendErrorResponse(w, "Failed to save uploaded file", "STORAGE_ERROR", http.StatusInternalServerError)
-		return
-	}
-
-	// Generate file URL (this would be the actual URL where the file can be accessed)
-	fileURL := fmt.Sprintf("file://%s", filePath) // Temporary URL format
 
 	// Call main service via gRPC
-	ctx := context.Background()
 	grpcResponse, err := h.grpcClient.CreateVideo(ctx, fileURL, userID, description)
 	if err != nil {
-		// Clean up file on gRPC failure
-		os.Remove(filePath)
+		// Clean up file from MinIO on gRPC failure
+		if deleteErr := h.minioService.DeleteFile(ctx, objectName); deleteErr != nil {
+			h.logger.WithError(deleteErr).Error("Failed to cleanup file from MinIO after gRPC failure")
+		}
 		h.logger.WithError(err).Error("Failed to create video via gRPC")
 		h.sendErrorResponse(w, "Failed to process video", "PROCESSING_ERROR", http.StatusInternalServerError)
 		return
+	}
+
+	// Publish message to RabbitMQ for video processing
+	if err := h.rabbitmqService.PublishVideoProcessingMessage(ctx, fileURL); err != nil {
+		h.logger.WithError(err).Error("Failed to publish video processing message")
+		// Note: We don't fail the request here as the video is already uploaded and recorded
+		// The processing can be retried later or handled manually
 	}
 
 	h.logger.WithFields(logrus.Fields{
@@ -127,13 +127,14 @@ func (h *UploadHandler) HandleUpload(w http.ResponseWriter, r *http.Request) {
 		"filename":    fileHeader.Filename,
 		"file_size":   fileHeader.Size,
 		"description": description,
-	}).Info("Video uploaded successfully")
+		"file_url":    fileURL,
+	}).Info("Video uploaded and processing initiated successfully")
 
 	// Send success response
 	response := UploadResponse{
 		Success: true,
 		VideoID: videoID,
-		Message: "Video uploaded successfully",
+		Message: "Video uploaded successfully and processing initiated",
 		Status:  "processing",
 		FileURL: fileURL,
 	}
@@ -141,10 +142,6 @@ func (h *UploadHandler) HandleUpload(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 
-	// Note: In a production system, you would:
-	// 1. Move the file to permanent storage (MinIO/S3)
-	// 2. Send a message to RabbitMQ for processing
-	// 3. Update the file URL in the database
 	_ = grpcResponse // Use the gRPC response as needed
 }
 
@@ -179,24 +176,6 @@ func (h *UploadHandler) validateFile(file multipart.File, header *multipart.File
 
 	if !allowed {
 		return fmt.Errorf("file type %s is not allowed. Allowed types: %v", mimeType, h.config.AllowedFileTypes)
-	}
-
-	return nil
-}
-
-// saveFile saves the uploaded file to the specified path
-func (h *UploadHandler) saveFile(src multipart.File, dst string) error {
-	// Create destination file
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return fmt.Errorf("failed to create destination file: %w", err)
-	}
-	defer dstFile.Close()
-
-	// Copy file content
-	_, err = io.Copy(dstFile, src)
-	if err != nil {
-		return fmt.Errorf("failed to copy file content: %w", err)
 	}
 
 	return nil
