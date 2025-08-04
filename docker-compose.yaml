@@ -1,6 +1,6 @@
 # Docker Compose file for VidFlow
 # Uses latest versions with security best practices
-# RabbitMQ 4.1.2 with Management Plugin
+# RabbitMQ 4.1.2 Alpine with Management Plugin (smaller, more secure)
 # PostgreSQL 17.5 with enhanced security
 
 # Networks - Custom bridge network for service isolation
@@ -62,14 +62,14 @@ services:
         chown -R 999:999 /postgres-data
         chmod -R 755 /postgres-data
         
-        # RabbitMQ data and logs
-        chown -R 999:999 /rabbitmq-data /rabbitmq-logs
+        # RabbitMQ data and logs (Alpine uses UID 100:101 instead of 999:999)
+        chown -R 100:101 /rabbitmq-data /rabbitmq-logs
         chmod -R 755 /rabbitmq-data /rabbitmq-logs
-        
+
         # Create and fix Erlang cookie permissions
         mkdir -p /rabbitmq-data
         echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /rabbitmq-data/.erlang.cookie
-        chown 999:999 /rabbitmq-data/.erlang.cookie
+        chown 100:101 /rabbitmq-data/.erlang.cookie
         chmod 600 /rabbitmq-data/.erlang.cookie
         
         # MinIO data directory
@@ -160,9 +160,9 @@ services:
       init-permissions:
         condition: service_completed_successfully
 
-  # RabbitMQ 4.1.2 with Management Plugin - Latest version with security
+  # RabbitMQ 4.1.2 with Management Plugin - Alpine version for better security and smaller footprint
   rabbitmq:
-    image: rabbitmq:4.1.2-management
+    image: rabbitmq:4.1.2-management-alpine
     container_name: vidflow-rabbitmq
     restart: unless-stopped
 
@@ -258,7 +258,7 @@ services:
 
   # MinIO S3-Compatible Object Storage - Latest version with security
   minio:
-    image: quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
+    image: quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z-cpuv1
     container_name: vidflow-minio
     restart: unless-stopped
 
@@ -433,7 +433,7 @@ services:
 
   # Elasticsearch - Search and Analytics Engine - Latest version with security
   elasticsearch:
-    image: elasticsearch:8.16.2
+    image: elasticsearch:9.1.0
     container_name: vidflow-elasticsearch
     restart: unless-stopped
 
