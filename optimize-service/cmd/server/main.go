@@ -24,7 +24,7 @@ func main() {
 
 	q, err := ch.QueueDeclare(
 		"video.quality.processing", // name
-		false,                      // durable
+		true,                       // durable - make queue persistent
 		false,                      // delete when unused
 		false,                      // exclusive
 		false,                      // no-wait

@@ -6,21 +6,26 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"vidflow/upload-service/internal/services"
+
+	"github.com/sirupsen/logrus"
 )
 
 // HealthHandler handles health check requests
 type HealthHandler struct {
-	grpcClient *services.GRPCClient
-	logger     *logrus.Logger
+	grpcClient      *services.GRPCClient
+	minioService    *services.MinIOService
+	rabbitmqService *services.RabbitMQService
+	logger          *logrus.Logger
 }
 
 // NewHealthHandler creates a new health handler
-func NewHealthHandler(grpcClient *services.GRPCClient, logger *logrus.Logger) *HealthHandler {
+func NewHealthHandler(grpcClient *services.GRPCClient, minioService *services.MinIOService, rabbitmqService *services.RabbitMQService, logger *logrus.Logger) *HealthHandler {
 	return &HealthHandler{
-		grpcClient: grpcClient,
-		logger:     logger,
+		grpcClient:      grpcClient,
+		minioService:    minioService,
+		rabbitmqService: rabbitmqService,
+		logger:          logger,
 	}
 }
 
@@ -36,19 +41,33 @@ type HealthResponse struct {
 func (h *HealthHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Check gRPC connection to main service
-	grpcStatus := "healthy"
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Check gRPC connection to main service
+	grpcStatus := "healthy"
 	if err := h.grpcClient.HealthCheck(ctx); err != nil {
 		h.logger.WithError(err).Warn("gRPC health check failed")
 		grpcStatus = "unhealthy"
 	}
 
+	// Check MinIO service
+	minioStatus := "healthy"
+	if err := h.minioService.HealthCheck(ctx); err != nil {
+		h.logger.WithError(err).Warn("MinIO health check failed")
+		minioStatus = "unhealthy"
+	}
+
+	// Check RabbitMQ service
+	rabbitmqStatus := "healthy"
+	if err := h.rabbitmqService.HealthCheck(ctx); err != nil {
+		h.logger.WithError(err).Warn("RabbitMQ health check failed")
+		rabbitmqStatus = "unhealthy"
+	}
+
 	// Determine overall status
 	overallStatus := "healthy"
-	if grpcStatus != "healthy" {
+	if grpcStatus != "healthy" || minioStatus != "healthy" || rabbitmqStatus != "healthy" {
 		overallStatus = "degraded"
 	}
 
@@ -57,6 +76,8 @@ func (h *HealthHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 		Services: map[string]string{
 			"grpc_main_service": grpcStatus,
+			"minio_storage":     minioStatus,
+			"rabbitmq_queue":    rabbitmqStatus,
 			"http_server":       "healthy",
 		},
 		Version: "1.0.0",
