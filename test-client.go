@@ -15,14 +15,14 @@ func main() {
 	writer := multipart.NewWriter(&buf)
 
 	// Add the video file
-	file, err := os.Open("IMG_3306.MP4")
+	file, err := os.Open("IMG_2934.MP4")
 	if err != nil {
 		fmt.Printf("Error opening file: %v\n", err)
 		return
 	}
 	defer file.Close()
 
-	part, err := writer.CreateFormFile("video", "IMG_3306.MP4")
+	part, err := writer.CreateFormFile("video", "IMG_2934.MP4")
 	if err != nil {
 		fmt.Printf("Error creating form file: %v\n", err)
 		return
