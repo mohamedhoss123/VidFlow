@@ -30,10 +30,10 @@ enum VideoStatus {
 
 model Users {
   id            String     @id @unique @db.VarChar(255)
-  name          String?    @db.VarChar(255)
-  email         String?    @db.VarChar(255)
-  password      String?    @db.VarChar(255)
-  created_at    DateTime?  @db.Date
+  name          String    @db.VarChar(255)
+  email         String    @db.VarChar(255) @unique
+  password      String    @db.VarChar(255)
+  created_at    DateTime  @db.Date
   videos        Video[]
   likes         Likes[]
   comments      Comments[]
