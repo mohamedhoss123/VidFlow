@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export function AppSidebar() {
   return (
-    <aside className="flex flex-col w-50 h-screen text-start p-4">
+    <aside className="flex flex-col w-60 gap-3 h-screen text-start p-4">
       <Button asChild variant="ghost" className="justify-start ">
       
         <Link href="/upload"><Upload /> Upload </Link>
