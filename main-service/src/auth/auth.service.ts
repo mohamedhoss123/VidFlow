@@ -27,8 +27,39 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new Error('Invalid password');
     }    
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET||"");
-    const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET||"");
+    const token = this.createToken(user.id);
+    const refreshToken = this.createRefresh(user.id);
     return {token,refreshToken};
+  }
+
+  async createToken(userId: string){
+    const token = jwt.sign({ id: userId }, process.env.JWT_SECRET||"");
+    return token;
+  }
+
+  async createRefresh(userId: string){
+    const id= uuidv7()
+    await this.prisma.refreshTokens.create({data:{user_id: userId,expires_at: new Date(Date.now() + 60 * 60 * 24 * 7 * 1000), id,created_at: new Date()}})
+    return id;
+  }
+  async refresh(refreshToken: string){
+    const token =await this.prisma.refreshTokens.findFirstOrThrow({ 
+      where: {
+        id: refreshToken,
+      },
+    });
+    if(token.expires_at < new Date()){
+      throw new Error('Refresh token expired');
+    }
+    await this.prisma.refreshTokens.update({
+      where: {
+        id: refreshToken,
+      },
+      data: {
+        expires_at: new Date(Date.now() + 60 * 60 * 24 * 7 * 1000),
+      },
+    })
+    const refresh = this.createRefresh(token.user_id);    
+    return {token,refresh};
   }
 }
