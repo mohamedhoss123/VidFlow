@@ -10,7 +10,7 @@ export function AppSidebar() {
         <Link href="/upload"><Upload /> Upload </Link>
       </Button>
       <Button asChild variant="ghost" className="justify-start ">
-        <Link href="/watch"><TvMinimalPlay /> My Videos </Link>
+        <Link href="/video"><TvMinimalPlay /> My Videos </Link>
       </Button>
       <Button asChild variant="ghost" className="justify-start ">
         <Link href="/explore"><ChartSpline /> Statistics </Link>

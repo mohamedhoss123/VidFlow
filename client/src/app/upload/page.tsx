@@ -95,7 +95,7 @@ export default function Home() {
               <FormItem>
                 <FormLabel>Title</FormLabel>
                 <FormControl>
-                  <Input placeholder="Title" {...field} />
+                  <Input className="w-100" placeholder="Title" {...field} />
                 </FormControl>
                 <FormDescription>
                   Title of the video.
@@ -111,7 +111,7 @@ export default function Home() {
               <FormItem>
                 <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Description" {...field} />
+                  <Textarea className="w-100" placeholder="Description" {...field} />
                 </FormControl>
                 <FormDescription>
                   Description of the video.
