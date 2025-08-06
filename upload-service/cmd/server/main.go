@@ -72,6 +72,7 @@ func main() {
 
 	// Register routes
 	router.HandleFunc("/upload", uploadHandler.HandleUpload).Methods("POST", "OPTIONS")
+	router.HandleFunc("/signed-url", uploadHandler.HandleGenerateSignedURL).Methods("POST", "OPTIONS")
 	router.HandleFunc("/health", healthHandler.HandleHealth).Methods("GET")
 	router.HandleFunc("/health/ready", healthHandler.HandleReadiness).Methods("GET")
 	router.HandleFunc("/health/live", healthHandler.HandleLiveness).Methods("GET")
