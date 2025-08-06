@@ -28,8 +28,8 @@ export class AuthService {
       throw new Error('Invalid password');
     }    
     const token = this.createToken(user.id);
-    const refreshToken = this.createRefresh(user.id);
-    return {token,refreshToken};
+    const refresh = this.createRefresh(user.id);
+    return {token,refresh};
   }
 
   async createToken(userId: string){

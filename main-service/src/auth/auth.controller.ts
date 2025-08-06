@@ -12,8 +12,15 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post("login")
-  login(@Body() loginAuthDto: LoginAuthDto) {
-    return this.authService.login(loginAuthDto);
+  async login(@Body() loginAuthDto: LoginAuthDto,@Res() res: Response) {
+    const {token,refresh} = await this.authService.login(loginAuthDto);
+    res.cookie("refreshToken",refresh,{
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 7 * 1000
+    })
+    return {token}
   }
 
   @Post("register")
