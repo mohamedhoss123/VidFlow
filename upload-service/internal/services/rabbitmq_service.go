@@ -2,10 +2,12 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"vidflow/upload-service/internal/config"
+	"vidflow/upload-service/internal/models"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
@@ -117,6 +119,68 @@ func (r *RabbitMQService) PublishVideoProcessingMessage(ctx context.Context, vid
 	return nil
 }
 
+// PublishVideoProcessingMessageV2 publishes an enhanced video processing message with signed URL and metadata
+func (r *RabbitMQService) PublishVideoProcessingMessageV2(ctx context.Context, message *models.VideoProcessingMessage) error {
+	// Set timeout for publish operation
+	publishCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	r.logger.WithFields(logrus.Fields{
+		"video_id":    message.VideoID,
+		"signed_url":  message.SignedURL,
+		"object_name": message.ObjectName,
+		"expires_at":  message.ExpiresAt,
+		"queue":       r.queueName,
+	}).Info("Publishing enhanced video processing message to RabbitMQ")
+
+	// Marshal message to JSON
+	messageBody, err := json.Marshal(message)
+	if err != nil {
+		r.logger.WithError(err).Error("Failed to marshal video processing message")
+		return fmt.Errorf("failed to marshal message: %w", err)
+	}
+
+	// Publish message
+	err = r.channel.PublishWithContext(
+		publishCtx,
+		"",          // exchange (using default)
+		r.queueName, // routing key (queue name)
+		false,       // mandatory
+		false,       // immediate
+		amqp.Publishing{
+			ContentType:  "application/json",
+			Body:         messageBody,
+			DeliveryMode: amqp.Persistent, // make message persistent
+			Timestamp:    time.Now(),
+			MessageId:    fmt.Sprintf("video-processing-v2-%s-%d", message.VideoID, time.Now().UnixNano()),
+			Headers: amqp.Table{
+				"message_version": "v2",
+				"video_id":        message.VideoID,
+				"expires_at":      message.ExpiresAt.Unix(),
+			},
+		},
+	)
+	if err != nil {
+		r.logger.WithError(err).WithFields(logrus.Fields{
+			"video_id":    message.VideoID,
+			"signed_url":  message.SignedURL,
+			"object_name": message.ObjectName,
+			"queue":       r.queueName,
+		}).Error("Failed to publish enhanced message to RabbitMQ")
+		return fmt.Errorf("failed to publish enhanced message to RabbitMQ: %w", err)
+	}
+
+	r.logger.WithFields(logrus.Fields{
+		"video_id":    message.VideoID,
+		"signed_url":  message.SignedURL,
+		"object_name": message.ObjectName,
+		"expires_at":  message.ExpiresAt,
+		"queue":       r.queueName,
+	}).Info("Enhanced video processing message published to RabbitMQ successfully")
+
+	return nil
+}
+
 // HealthCheck performs a health check on the RabbitMQ service
 func (r *RabbitMQService) HealthCheck(ctx context.Context) error {
 	// Check if connection is alive
@@ -129,8 +193,15 @@ func (r *RabbitMQService) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("RabbitMQ channel is closed")
 	}
 
-	// Use a simple queue inspection as health check
-	_, err := r.channel.QueueInspect(r.queueName)
+	// Use passive queue declaration as health check (replaces deprecated QueueInspect)
+	_, err := r.channel.QueueDeclarePassive(
+		r.queueName, // name
+		true,        // durable
+		false,       // delete when unused
+		false,       // exclusive
+		false,       // no-wait
+		nil,         // arguments
+	)
 	if err != nil {
 		r.logger.WithError(err).Warn("RabbitMQ health check failed")
 		return fmt.Errorf("RabbitMQ health check failed: %w", err)

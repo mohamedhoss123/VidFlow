@@ -587,7 +587,24 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - LOG_LEVEL=info
+      # MinIO Configuration
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=vidflow_admin
+      - MINIO_SECRET_KEY=VidFlow_MinIO_2024!
+      - MINIO_BUCKET_NAME=videos
+      - MINIO_USE_SSL=false
+      # MinIO Signed URL Configuration
+      - SIGNED_URL_DOWNLOAD_EXPIRY=3600  # 1 hour
+      - SIGNED_URL_UPLOAD_EXPIRY=900     # 15 minutes
+      - SIGNED_URL_PROCESS_EXPIRY=14400  # 4 hours
+      # RabbitMQ Configuration
       - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
+      - RABBITMQ_QUEUE=video.quality.processing
+      # Processing Configuration
+      - WORKING_DIR=./video
+      - MAX_CONCURRENCY=2
+      - PROCESS_TIMEOUT=3600  # 1 hour
     networks:
       - vidflow-network
     depends_on:
@@ -630,7 +647,7 @@ services:
       - HTTP_PORT=8081
       - GRPC_MAIN_SERVICE_ADDR=main-service:50051
       - MAX_FILE_SIZE=524288000  # 500MB
-      - ALLOWED_FILE_TYPES=video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm,video/mkv
+      - ALLOWED_FILE_TYPES=video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm,video/mkv,application/octet-stream
       - UPLOAD_DIR=/tmp/uploads
       - LOG_LEVEL=info
     # MinIO Configuration
@@ -639,6 +656,10 @@ services:
       - MINIO_SECRET_KEY=VidFlow_MinIO_2024!
       - MINIO_BUCKET_NAME=videos
       - MINIO_USE_SSL=false
+      # MinIO Signed URL Configuration
+      - SIGNED_URL_DOWNLOAD_EXPIRY=3600  # 1 hour
+      - SIGNED_URL_UPLOAD_EXPIRY=900     # 15 minutes
+      - SIGNED_URL_PROCESS_EXPIRY=14400  # 4 hours
       # RabbitMQ Configuration
       - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
       - RABBITMQ_QUEUE=video.quality.processing

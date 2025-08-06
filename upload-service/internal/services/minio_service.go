@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
+	"net/url"
 	"path/filepath"
 	"time"
 
@@ -21,6 +22,7 @@ type MinIOService struct {
 	logger     *logrus.Logger
 	endpoint   string
 	useSSL     bool
+	config     *config.Config
 }
 
 // NewMinIOService creates a new MinIO service instance
@@ -40,6 +42,7 @@ func NewMinIOService(cfg *config.Config, logger *logrus.Logger) (*MinIOService, 
 		logger:     logger,
 		endpoint:   cfg.MinIOEndpoint,
 		useSSL:     cfg.MinIOUseSSL,
+		config:     cfg,
 	}
 
 	// Ensure bucket exists
@@ -177,4 +180,119 @@ func (m *MinIOService) HealthCheck(ctx context.Context) error {
 func (m *MinIOService) GenerateObjectName(originalFilename, videoID string) string {
 	ext := filepath.Ext(originalFilename)
 	return fmt.Sprintf("%s%s", videoID, ext)
+}
+
+// GeneratePresignedGetURL generates a presigned URL for downloading an object
+func (m *MinIOService) GeneratePresignedGetURL(ctx context.Context, objectName string, expiry time.Duration) (*url.URL, error) {
+	if expiry <= 0 {
+		expiry = time.Duration(m.config.SignedURLDownloadExpiry) * time.Second
+	}
+
+	// Set request parameters for content-disposition if needed
+	reqParams := make(url.Values)
+
+	presignedURL, err := m.client.PresignedGetObject(ctx, m.bucketName, objectName, expiry, reqParams)
+	if err != nil {
+		m.logger.WithError(err).WithFields(logrus.Fields{
+			"object_name": objectName,
+			"bucket":      m.bucketName,
+			"expiry":      expiry,
+		}).Error("Failed to generate presigned GET URL")
+		return nil, fmt.Errorf("failed to generate presigned GET URL: %w", err)
+	}
+
+	m.logger.WithFields(logrus.Fields{
+		"object_name":   objectName,
+		"bucket":        m.bucketName,
+		"expiry":        expiry,
+		"presigned_url": presignedURL.String(),
+	}).Info("Generated presigned GET URL successfully")
+
+	return presignedURL, nil
+}
+
+// GeneratePresignedPutURL generates a presigned URL for uploading an object
+func (m *MinIOService) GeneratePresignedPutURL(ctx context.Context, objectName string, expiry time.Duration) (*url.URL, error) {
+	if expiry <= 0 {
+		expiry = time.Duration(m.config.SignedURLUploadExpiry) * time.Second
+	}
+
+	presignedURL, err := m.client.PresignedPutObject(ctx, m.bucketName, objectName, expiry)
+	if err != nil {
+		m.logger.WithError(err).WithFields(logrus.Fields{
+			"object_name": objectName,
+			"bucket":      m.bucketName,
+			"expiry":      expiry,
+		}).Error("Failed to generate presigned PUT URL")
+		return nil, fmt.Errorf("failed to generate presigned PUT URL: %w", err)
+	}
+
+	m.logger.WithFields(logrus.Fields{
+		"object_name":   objectName,
+		"bucket":        m.bucketName,
+		"expiry":        expiry,
+		"presigned_url": presignedURL.String(),
+	}).Info("Generated presigned PUT URL successfully")
+
+	return presignedURL, nil
+}
+
+// GeneratePresignedPostPolicy generates a presigned POST policy for browser uploads
+func (m *MinIOService) GeneratePresignedPostPolicy(ctx context.Context, objectName string, expiry time.Duration, maxFileSize int64) (*url.URL, map[string]string, error) {
+	if expiry <= 0 {
+		expiry = time.Duration(m.config.SignedURLUploadExpiry) * time.Second
+	}
+
+	// Initialize policy condition config
+	policy := minio.NewPostPolicy()
+
+	// Apply upload policy restrictions
+	policy.SetBucket(m.bucketName)
+	policy.SetKey(objectName)
+	policy.SetExpires(time.Now().UTC().Add(expiry))
+
+	// Set content length range if specified
+	if maxFileSize > 0 {
+		policy.SetContentLengthRange(1, maxFileSize)
+	}
+
+	// Get the POST form key/value object
+	presignedURL, formData, err := m.client.PresignedPostPolicy(ctx, policy)
+	if err != nil {
+		m.logger.WithError(err).WithFields(logrus.Fields{
+			"object_name": objectName,
+			"bucket":      m.bucketName,
+			"expiry":      expiry,
+		}).Error("Failed to generate presigned POST policy")
+		return nil, nil, fmt.Errorf("failed to generate presigned POST policy: %w", err)
+	}
+
+	m.logger.WithFields(logrus.Fields{
+		"object_name":   objectName,
+		"bucket":        m.bucketName,
+		"expiry":        expiry,
+		"presigned_url": presignedURL.String(),
+	}).Info("Generated presigned POST policy successfully")
+
+	return presignedURL, formData, nil
+}
+
+// UploadFileWithSignedURL uploads a file and returns both the upload info and signed download URL
+func (m *MinIOService) UploadFileWithSignedURL(ctx context.Context, file multipart.File, fileHeader *multipart.FileHeader, objectName string) (string, *url.URL, time.Time, error) {
+	// Upload the file first
+	_, err := m.UploadFile(ctx, file, fileHeader, objectName)
+	if err != nil {
+		return "", nil, time.Time{}, err
+	}
+
+	// Generate signed download URL for processing (use longer expiry for video processing)
+	expiry := time.Duration(m.config.SignedURLProcessExpiry) * time.Second
+	signedURL, err := m.GeneratePresignedGetURL(ctx, objectName, expiry)
+	if err != nil {
+		return "", nil, time.Time{}, fmt.Errorf("failed to generate signed download URL: %w", err)
+	}
+
+	expiresAt := time.Now().UTC().Add(expiry)
+
+	return objectName, signedURL, expiresAt, nil
 }
