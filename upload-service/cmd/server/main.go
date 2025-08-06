@@ -8,12 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 	"vidflow/upload-service/internal/config"
 	"vidflow/upload-service/internal/handlers"
 	"vidflow/upload-service/internal/middleware"
 	"vidflow/upload-service/internal/services"
+
+	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -44,9 +45,22 @@ func main() {
 	}
 	defer grpcClient.Close()
 
+	// Initialize MinIO service
+	minioService, err := services.NewMinIOService(cfg, logger)
+	if err != nil {
+		logger.WithError(err).Fatal("Failed to initialize MinIO service")
+	}
+
+	// Initialize RabbitMQ service
+	rabbitmqService, err := services.NewRabbitMQService(cfg, logger)
+	if err != nil {
+		logger.WithError(err).Fatal("Failed to initialize RabbitMQ service")
+	}
+	defer rabbitmqService.Close()
+
 	// Initialize handlers
-	uploadHandler := handlers.NewUploadHandler(cfg, grpcClient, logger)
-	healthHandler := handlers.NewHealthHandler(grpcClient, logger)
+	uploadHandler := handlers.NewUploadHandler(cfg, grpcClient, minioService, rabbitmqService, logger)
+	healthHandler := handlers.NewHealthHandler(grpcClient, minioService, rabbitmqService, logger)
 
 	// Setup router
 	router := mux.NewRouter()

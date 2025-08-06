@@ -1,3 +1,55 @@
 secrets/
 node_modules
 .env
+
+# Binary files
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Video files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+
+# Image files (large)
+*.psd
+*.ai
+
+# Archive files
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+logs/
+
+# Build artifacts
+dist/
+build/
+target/
+bin/
+obj/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
