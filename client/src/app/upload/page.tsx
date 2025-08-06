@@ -24,7 +24,13 @@ const formSchema = z.object({
   }),
 })
 
-export function UploadInput({ form }: { form: ReturnType<typeof useForm> }) {
+type UploadFormValues = z.infer<typeof formSchema>;
+
+export function UploadInput({
+  form,
+}: {
+  form: ReturnType<typeof useForm<UploadFormValues>>;
+}) {
   return (
     <label className="w-100 h-60 border relative rounded-lg border-dashed p-5 flex gap-2 flex-col items-center justify-center cursor-pointer">
       <FilePlay />
@@ -35,33 +41,39 @@ export function UploadInput({ form }: { form: ReturnType<typeof useForm> }) {
         render={({ field }) => (
           <FormItem>
             <FormControl>
-              <input type="file" className="w-full h-full absolute opacity-0" aria-label="Upload" {...field} />
-
+              <input
+                type="file"
+                className="w-full h-full absolute opacity-0"
+                aria-label="Upload"
+                onChange={(e) => {
+                  field.onChange(e.target.files?.[0]);
+                }}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-
     </label>
-  )
+  );
 }
 
 
 
 
+
 export default function Home() {
-  // 1. Define your form.
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<UploadFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
       description: "",
       tags: "",
       thumbnail: "",
-      video: undefined,
+      video: undefined as unknown as File, // or use `undefined` and cast as needed
     },
   })
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values)
