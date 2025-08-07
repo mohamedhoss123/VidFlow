@@ -617,8 +617,11 @@ services:
       dockerfile: Dockerfile
     container_name: vidflow-main-service
     restart: unless-stopped
+    volumes:
+      - ./main-service:/app
     ports:
       - "50051:50051"  # gRPC port
+      - "3000:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://vidflow_user:VidFlow_PostgreSQL_2024!@postgres:5432/vidflow

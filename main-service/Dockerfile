@@ -1,9 +1,8 @@
-# Alternative Solution 2: Updated Alpine with Latest Security Patches
-# Build stage
-FROM node:22-alpine3.20 AS builder
+# Node.js development environment
+FROM node:22-alpine3.20
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
+# Install pnpm
+RUN npm install -g pnpm
 
 # Set working directory
 WORKDIR /app
@@ -11,11 +10,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install pnpm
-RUN npm install -g pnpm
-
-# Install all dependencies (including dev dependencies for build)
-RUN pnpm install --frozen-lockfile
+# Install dependencies
+RUN pnpm install
 
 # Copy source code
 COPY . .
@@ -23,46 +19,7 @@ COPY . .
 # Generate Prisma client
 RUN pnpm prisma generate
 
-# Build the application
-RUN pnpm run build
 
-# Production stage
-FROM node:22-alpine3.20 AS production
+# Start development server
+CMD ["pnpm", "run", "start:dev"]
 
-# Create non-root user first
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
-
-# Install pnpm
-RUN npm install -g pnpm
-
-# Set working directory and change ownership
-WORKDIR /app
-RUN chown appuser:appgroup /app
-
-# Switch to non-root user early
-USER appuser
-
-# Copy package files
-COPY --chown=appuser:appgroup package.json pnpm-lock.yaml ./
-
-# Install production dependencies and Prisma CLI
-RUN pnpm install --frozen-lockfile --prod && pnpm add prisma --save-dev
-
-# Copy built application and necessary files from builder stage
-COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
-COPY --from=builder --chown=appuser:appgroup /app/prisma ./prisma
-COPY --from=builder --chown=appuser:appgroup /app/src/proto ./src/proto
-
-# Generate Prisma client in production stage
-RUN pnpm prisma generate
-
-# Expose gRPC port
-EXPOSE 50051
-
-# Health check (basic check if the process is running)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD pgrep -f "node.*main" || exit 1
-
-# Start the application
-CMD ["node", "dist/main.js"]
