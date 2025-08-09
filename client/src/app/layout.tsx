@@ -23,16 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} antialiased`}>
-        <Header />
-
-        <SidebarProvider>
-          <AppSidebar />
-            <SidebarTrigger />
-
-            {children}
-          <main>
-          </main>
-        </SidebarProvider>
+        {children}
       </body>
     </html>
   );
