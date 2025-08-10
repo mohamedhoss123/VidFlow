@@ -17,14 +17,23 @@ async function bootstrap() {
       },
     },
   );  
+  app.setGlobalPrefix("api")
    const config = new DocumentBuilder()
     .setTitle('Videflow') 
     .setDescription('The Vidflow API description')
     .setBasePath('/api')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+      'access-token', // This name must match @ApiBearerAuth() decorator
+    )
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
+  SwaggerModule.setup('api/docs', app, documentFactory);
   await app.startAllMicroservices()
   await app.listen(3000);
 }
