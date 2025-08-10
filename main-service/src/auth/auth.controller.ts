@@ -14,13 +14,14 @@ export class AuthController {
   @Post("login")
   async login(@Body() loginAuthDto: LoginAuthDto,@Res() res: Response) {
     const {token,refresh} = await this.authService.login(loginAuthDto);
+    console.log(refresh)
     res.cookie("refreshToken",refresh,{
       httpOnly: true,
       secure: true,
       sameSite: "strict",
       maxAge: 60 * 60 * 24 * 7 * 1000
     })
-    return {token}
+    res.send({token})
   }
 
   @Post("register")

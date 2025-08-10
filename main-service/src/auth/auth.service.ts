@@ -27,13 +27,13 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new Error('Invalid password');
     }    
-    const token = this.createToken(user.id);
-    const refresh = this.createRefresh(user.id);
+    const token = await this.createToken(user.id);
+    const refresh = await this.createRefresh(user.id);
     return {token,refresh};
   }
 
   async createToken(userId: string){
-    const token = jwt.sign({ id: userId }, process.env.JWT_SECRET||"");
+    const token = jwt.sign({ user_id:userId }, process.env.JWT_SECRET||"");
     return token;
   }
 
@@ -59,7 +59,7 @@ export class AuthService {
         expires_at: new Date(Date.now() + 60 * 60 * 24 * 7 * 1000),
       },
     })
-    const refresh = this.createRefresh(token.user_id);    
+    const refresh =await this.createRefresh(token.user_id);    
     return {token,refresh};
   }
 }
