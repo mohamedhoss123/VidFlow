@@ -9,7 +9,16 @@ import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 
 import { FilePlay } from "lucide-react";
+import { Progress } from "~/components/ui/progress";
+import { useRef, useState } from "react";
+import { MediaPlayer, MediaProvider } from '@vidstack/react';
+import {
+  DefaultAudioLayout,
+  defaultLayoutIcons,
+  DefaultVideoLayout,
+} from '@vidstack/react/player/layouts/default';
 
+import axios from "axios";
 const formSchema = z.object({
   title: z.string().min(2, {
     message: "Username must be at least 2 characters.",
@@ -31,10 +40,47 @@ export function UploadInput({
 }: {
   form: ReturnType<typeof useForm<UploadFormValues>>;
 }) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string>("");
+  const [progress, setProgress] = useState<number>(0);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileChange = async (file?: File) => {
+    if (!file) return;
+
+    // Create blob URL preview
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    setMimeType(file.type);
+
+    // Upload file with progress
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploading(true);
+    setProgress(0);
+
+    try {
+      await axios.post("/api/upload", formData, {
+        onUploadProgress: (e) => {
+          if (e.total) {
+            const percent = Math.round((e.loaded * 100) / e.total);
+            setProgress(percent);
+          }
+        },
+      });
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
-    <label className="w-100 h-60 border relative rounded-lg border-dashed p-5 flex gap-2 flex-col items-center justify-center cursor-pointer">
+    <label className="w-150 border relative rounded-lg border-dashed p-5 flex gap-2 flex-col items-center justify-center cursor-pointer overflow-hidden">
       <FilePlay />
       <p className="text-muted-foreground">Drag and drop video to upload</p>
+
       <FormField
         control={form.control}
         name="video"
@@ -43,10 +89,13 @@ export function UploadInput({
             <FormControl>
               <input
                 type="file"
+                accept="video/*"
                 className="w-full h-full absolute opacity-0"
                 aria-label="Upload"
                 onChange={(e) => {
-                  field.onChange(e.target.files?.[0]);
+                  const file = e.target.files?.[0];
+                  field.onChange(file);
+                  handleFileChange(file);
                 }}
               />
             </FormControl>
@@ -54,12 +103,31 @@ export function UploadInput({
           </FormItem>
         )}
       />
+
+      {preview && (
+        <div className="mt-3 w-full flex justify-center">
+          {/* <MediaPlayer title="Video Preview" src={ src={preview} type={mimeType || "video/mp4"} }>
+            <MediaProvider>
+              
+            </MediaProvider>
+          </MediaPlayer> */}
+          <MediaPlayer controls title="Sprite Fight" src={{ src: preview, type: mimeType || "video/mp4" }} >
+            <MediaProvider />
+            <DefaultAudioLayout icons={defaultLayoutIcons} />
+            <DefaultVideoLayout icons={defaultLayoutIcons} />
+          </MediaPlayer>
+        </div>
+      )}
+
+      {uploading && (
+        <div className="w-full mt-3">
+          <Progress value={progress} />
+          <p className="text-xs text-center mt-1">{progress}%</p>
+        </div>
+      )}
     </label>
   );
 }
-
-
-
 
 
 export default function Home() {
