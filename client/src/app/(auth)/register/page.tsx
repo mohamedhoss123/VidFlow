@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
 import Link from 'next/link'
+import axiosInstance from '~/lib/api';
 
 
 export const formSchema = z
@@ -47,8 +48,9 @@ export default function Register() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log('Registering:', values)
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const data = await axiosInstance.post("api/auth/register", values)
+    console.log(data)
   }
 
   return (
@@ -68,7 +70,7 @@ export default function Register() {
               <div className="grid gap-6">
                 <div className="grid gap-3">
                   <FormField
-                    control={form.control}
+                    control={form.control} 
                     name="name"
                     render={({ field }) => (
                       <FormItem>
