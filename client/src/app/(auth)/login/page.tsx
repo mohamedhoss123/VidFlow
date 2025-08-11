@@ -9,7 +9,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
 import Link from 'next/link'
-
+import axiosInstance from '~/lib/api';
+import { useRouter } from "next/navigation";
 export const formSchema = z.object({
   email: z
     .email()
@@ -26,6 +27,7 @@ export const formSchema = z.object({
 });
 
 export default function Login() {
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -35,8 +37,11 @@ export default function Login() {
   })
 
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const data = await axiosInstance.post('/api/auth/login', values)
+    localStorage.setItem("token",data.data.token)
+    console.log(data) 
+    router.push("/video"); // or replace() if you don't want back button to go to the old page
   }
   return (
     <>
