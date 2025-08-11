@@ -4,9 +4,14 @@ import { Transport, type MicroserviceOptions } from '@nestjs/microservices';
 import { join } from 'node:path';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import  cookieParser from 'cookie-parser';
+import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   app.use(cookieParser());
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+    whitelist: true,
+  }));
   app.connectMicroservice<MicroserviceOptions>(
     {
       transport: Transport.GRPC,
