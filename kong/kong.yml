@@ -1,6 +1,14 @@
 _format_version: "2.1"
 
 services:
+  - name: client
+    url: http://client:3001
+    routes:
+      - name: client
+        paths:
+          - /
+        strip_path: false
+
   - name: main-service
     url: http://main-service:3000
 
@@ -21,3 +29,4 @@ services:
           - /api/auth
           - /api/docs
         strip_path: false
+
