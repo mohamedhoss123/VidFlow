@@ -637,6 +637,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: vidflow-client
+    restart: unless-stopped
+    volumes:
+      - ./client:/app
+    ports:
+      - "3001:3001"
+
+    networks:
+      - vidflow-network
+ 
+
 
   upload-service:
     build:
