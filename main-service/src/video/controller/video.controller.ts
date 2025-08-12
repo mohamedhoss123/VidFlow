@@ -1,12 +1,12 @@
 import { Controller, Get, Query ,Param, Headers, UsePipes, Req, ValidationPipe, UseGuards} from '@nestjs/common';
 import { GrpcMethod, MessagePattern, Payload } from '@nestjs/microservices';
-import { VideoService } from './video.service';
-import { CreateVideoDto } from './dto/create-video.dto';
-import { UpdateVideoDto } from './dto/update-video.dto';
+import { VideoService } from '../service/video.service';
+import { CreateVideoDto } from '../dto/create-video.dto';
+import { UpdateVideoDto } from '../dto/update-video.dto';
 import { CreateVideoRequest } from 'src/common/proto/video';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { GetVideoDto, VideoResponseDto } from './dto/video.dto';
-import { VideoGuard } from './guard/video.guard';
+import { GetVideoDto, VideoResponseDto } from '../dto/video.dto';
+import { VideoGuard } from '../guard/video.guard';
 @ApiBearerAuth('access-token') // Match name in addBearerAuth 
 @Controller("video")
 export class VideoController {
