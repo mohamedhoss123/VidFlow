@@ -19,6 +19,7 @@ import {
 } from '@vidstack/react/player/layouts/default';
 
 import axios from "axios";
+import Player from "~/components/player";
 const formSchema = z.object({
   title: z.string().min(2, {
     message: "Username must be at least 2 characters.",
@@ -106,16 +107,19 @@ export function UploadInput({
 
       {preview && (
         <div className="mt-3 w-full flex justify-center">
-          {/* <MediaPlayer title="Video Preview" src={ src={preview} type={mimeType || "video/mp4"} }>
-            <MediaProvider>
-              
-            </MediaProvider>
-          </MediaPlayer> */}
-          <MediaPlayer controls title="Sprite Fight" src={{ src: preview, type: mimeType || "video/mp4" }} >
-            <MediaProvider />
-            <DefaultAudioLayout icons={defaultLayoutIcons} />
-            <DefaultVideoLayout icons={defaultLayoutIcons} />
-          </MediaPlayer>
+          <Player
+          
+          thumbnails={thumbnails}
+
+            src='https://files.vidstack.io/sprite-fight/hls/stream.m3u8'
+            viewType='video'
+            streamType='on-demand'
+            logLevel='warn'
+            crossOrigin
+            playsInline
+            title='Sprite Fight'
+            poster='https://files.vidstack.io/sprite-fight/poster.webp'
+          />
         </div>
       )}
 

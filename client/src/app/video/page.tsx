@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link";
+import Player from "~/components/player";
 import { timeAgo } from "~/lib/utils";
 import { getVideos } from "~/services/api";
 
@@ -27,6 +28,8 @@ export default function Home() {
             </Link>
           ))
         }
+
+
       </div>
 
     </div>
