@@ -1,0 +1,13 @@
+{
+  "inputs": [
+ {
+      "inputFile": "./files/main-service.yaml",
+
+
+      "operationSelection": {
+        "excludeTags": ["excluded"]
+      }
+    }
+  ],
+  "output": "./output.swagger.json"
+}

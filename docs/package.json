@@ -1,0 +1,19 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "generate": "openapi-merge-cli",
+    "preview":"openapi swagger-ui ./output.swagger.json"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.4",
+  "dependencies": {
+    "openapi-merge-cli": "^1.3.2",
+    "openapicmd": "^2.7.0"
+  }
+}
