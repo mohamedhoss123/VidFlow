@@ -76,13 +76,14 @@ model VideoQuality {
 }
 
 model Likes {
-  id         String    @id @unique @db.VarChar(255)
-  user_id    String?   @db.VarChar(255)
-  video_id   String?   @db.VarChar(255)
+  user_id    String   @db.VarChar(255)
+  video_id   String   @db.VarChar(255)
   created_at DateTime? @db.Date
 
-  user       Users?     @relation(fields: [user_id], references: [id])
-  video      Video?    @relation(fields: [video_id], references: [id])
+  user       Users    @relation(fields: [user_id], references: [id])
+  video      Video    @relation(fields: [video_id], references: [id])
+
+  @@id([user_id, video_id])
 }
 
 model Comments {
@@ -90,7 +91,7 @@ model Comments {
   content    String?   @db.VarChar(255)
   user_id    String?   @db.VarChar(255)
   video_id   String?   @db.VarChar(255)
-  created_at Int?
+  created_at DateTime? @db.Date
 
   user       Users?     @relation(fields: [user_id], references: [id])
   video      Video?    @relation(fields: [video_id], references: [id])

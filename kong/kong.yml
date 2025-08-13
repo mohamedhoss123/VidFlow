@@ -1,14 +1,32 @@
 _format_version: "2.1"
 
 services:
-  - name: gist-service
-    url: http://google.com
+  - name: client
+    url: http://client:3001
+    routes:
+      - name: client
+        paths:
+          - /
+        strip_path: false
+
+  - name: main-service
+    url: http://main-service:3000
 
     routes:
-      - name: gists-route
+      # Protected route
+      - name: secure
         paths:
-          - /verify
-    plugins:
-      - name: go-auth
-        config:
-          secret: my-secret-key
+          - /api
+        strip_path: false
+        plugins:
+          - name: go-auth
+            config:
+              secret: my-secret-key
+
+      # Public route
+      - name: public
+        paths:
+          - /api/auth
+          - /api/docs
+        strip_path: false
+
