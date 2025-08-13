@@ -1,0 +1,271 @@
+openapi: 3.0.0
+paths:
+  /api:
+    get:
+      operationId: AppController_getHello
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - App
+  /api/video/{id}:
+    get:
+      operationId: VideoController_getVideo
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Video details with qualities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoResponseDto'
+        '403':
+          description: Access denied
+      security:
+        - access-token: []
+      summary: Get video details and qualities if user has permission
+      tags:
+        - Video
+  /api/video/{videoId}/like:
+    post:
+      operationId: LikeController_addLike
+      parameters:
+        - name: videoId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      security:
+        - access-token: []
+      tags:
+        - Like
+    delete:
+      operationId: LikeController_removeLike
+      parameters:
+        - name: videoId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - access-token: []
+      tags:
+        - Like
+  /api/video/{videoId}/comment:
+    post:
+      operationId: CommentController_addComment
+      parameters:
+        - name: videoId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentDto'
+      responses:
+        '201':
+          description: ''
+      security:
+        - access-token: []
+      tags:
+        - Comment
+    delete:
+      operationId: CommentController_removeComment
+      parameters:
+        - name: videoId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - access-token: []
+      tags:
+        - Comment
+  /api/auth/login:
+    post:
+      operationId: AuthController_login
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginAuthDto'
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Auth
+  /api/auth/register:
+    post:
+      operationId: AuthController_register
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuthDto'
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Auth
+  /api/auth/refresh:
+    post:
+      operationId: AuthController_refresh
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Auth
+info:
+  title: Videflow
+  description: The Vidflow API description
+  version: '1.0'
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    access-token:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+  schemas:
+    VideoQualityResponseDto:
+      type: object
+      properties:
+        quality:
+          type: object
+          description: Video resolution or quality option
+          example: 1080p
+          nullable: true
+        source:
+          type: object
+          description: Source URL for this quality
+          example: https://example.com/video-1080p.mp4
+          nullable: true
+      required:
+        - quality
+        - source
+    VideoResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Video ID
+          example: vid123
+        name:
+          type: object
+          description: Video name
+          example: My Awesome Video
+          nullable: true
+        description:
+          type: object
+          description: Video description
+          example: This is a description
+          nullable: true
+        user_id:
+          type: object
+          description: User ID of the video owner
+          example: user456
+          nullable: true
+        likes_count:
+          type: object
+          description: Number of likes
+          example: 120
+          nullable: true
+        comments_count:
+          type: object
+          description: Number of comments
+          example: 45
+          nullable: true
+        visibility:
+          type: object
+          description: Video visibility status
+          example: PUBLIC
+          nullable: true
+        created_at:
+          type: object
+          description: Video creation date
+          example: '2025-08-10T12:34:56.000Z'
+          nullable: true
+        qualities:
+          description: Available qualities for this video
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoQualityResponseDto'
+      required:
+        - id
+        - name
+        - description
+        - user_id
+        - likes_count
+        - comments_count
+        - visibility
+        - created_at
+        - qualities
+    CreateCommentDto:
+      type: object
+      properties:
+        content:
+          type: string
+          example: This is a comment
+          description: The content of the comment
+          minLength: 1
+      required:
+        - content
+    LoginAuthDto:
+      type: object
+      properties:
+        email:
+          type: string
+          example: user@example.com
+          description: The email of the user
+        password:
+          type: string
+          example: password123
+          description: The password of the user
+      required:
+        - email
+        - password
+    CreateAuthDto:
+      type: object
+      properties:
+        name:
+          type: string
+          example: John Doe
+          description: The name of the user
+        email:
+          type: string
+          example: user@example.com
+          description: The email of the user
+        password:
+          type: string
+          example: password123
+          description: The password of the user
+      required:
+        - name
+        - email
+        - password
