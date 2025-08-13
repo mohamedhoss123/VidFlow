@@ -108,9 +108,7 @@ export function UploadInput({
       {preview && (
         <div className="mt-3 w-full flex justify-center">
           <Player
-          
-          thumbnails={thumbnails}
-
+            thumbnails={thumbnails}
             src='https://files.vidstack.io/sprite-fight/hls/stream.m3u8'
             viewType='video'
             streamType='on-demand'

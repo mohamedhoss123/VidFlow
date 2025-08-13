@@ -31,7 +31,7 @@ export const textTracks = [
 ] as const;
 
 
-export default function Player( thumbnails: string, props: MediaPlayerProps) {
+export default function Player(  props: MediaPlayerProps, thumbnails?: string) {
   return (
     <MediaPlayer
       {...props}
@@ -43,7 +43,7 @@ export default function Player( thumbnails: string, props: MediaPlayerProps) {
         ))}
       </MediaProvider>
       <DefaultVideoLayout
-        thumbnails='https://files.vidstack.io/sprite-fight/thumbnails.vtt'
+        thumbnails={thumbnails ?? 'https://files.vidstack.io/sprite-fight/thumbnails.vtt'}
         icons={defaultLayoutIcons}
       />
     </MediaPlayer>

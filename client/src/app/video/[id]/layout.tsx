@@ -20,7 +20,7 @@ export default function Video({
             getVideos().map(video => (
               <Link href={`/video/${video.id}`} key={video.id}>
                 <div key={video.id} className="flex flex-col gap-1">
-                  <img loading="lazy" decoding="async" src={video.thumbnail} alt={video.title} width={300} height={200} className="rounded-lg border" />
+                  <img loading="lazy" decoding="async" src={video.thumbnail} alt={video.title} className="rounded-lg aspect-video border w-full h-auto" />
                   <div className="flex gap-2 items-start justify-between">
                     <p className="text-lg leading-5 font-semibold text-secondary-foreground">{video.title}</p>
                   </div>
@@ -30,8 +30,9 @@ export default function Video({
             ))
           }
         </div>
-      </div>
       {children}
+
+      </div>
     </div>
   );
 }
