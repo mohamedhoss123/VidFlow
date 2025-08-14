@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VideoQualityOptions {
+  p144
+  p240
+  p360
+  p480
+  p720
+  p1080
+}
+
+enum VideoVisibility {
+  public
+  private
+  unlisted
+}
+
+enum VideoStatus {
+  PROCESSING
+  READY
+}
+
+
+model Users {
+  id            String     @id @unique @db.VarChar(255)
+  name          String    @db.VarChar(255)
+  email         String    @db.VarChar(255) @unique
+  password      String    @db.VarChar(255)
+  created_at    DateTime  @db.Date
+  videos        Video[]
+  likes         Likes[]
+  comments      Comments[]
+  notifications Notification[]
+  refreshTokens RefreshTokens[]
+  followedBy    Subscription[] @relation("FollowedBy")
+  following     Subscription[] @relation("Following")
+}
+model RefreshTokens{
+  id String @id @unique @db.VarChar(255)
+  user_id String @db.VarChar(255)
+  user Users @relation(fields: [user_id], references: [id])
+  created_at DateTime @db.Date
+  expires_at DateTime @db.Date
+}
+model Video {
+  id             String        @id @unique @db.VarChar(255)
+  name           String?       @db.VarChar(255)
+  description    String?       @db.VarChar(255)
+  user_id        String?       @db.VarChar(255)
+  user           Users?         @relation(fields: [user_id], references: [id])
+  likes_count    Int?
+  comments_count Int?
+  visibility     VideoVisibility?
+  status         VideoStatus?
+  created_at     DateTime?     @db.Date
+  qualities      VideoQuality[]
+  likes          Likes[]
+  comments       Comments[]
+}
+
+model VideoQuality {
+  id         String        @id @unique @db.VarChar(255)
+  quality     VideoQualityOptions?
+  video_id   String?       @db.VarChar(255)
+  video      Video?        @relation(fields: [video_id], references: [id])
+  source     String?       @db.VarChar(255)
+  created_at DateTime?     @db.Date
+}
+
+model Likes {
+  user_id    String   @db.VarChar(255)
+  video_id   String   @db.VarChar(255)
+  created_at DateTime? @db.Date
+
+  user       Users    @relation(fields: [user_id], references: [id])
+  video      Video    @relation(fields: [video_id], references: [id])
+
+  @@id([user_id, video_id])
+}
+
+model Comments {
+  id         String    @id @unique @db.VarChar(255)
+  content    String?   @db.VarChar(255)
+  user_id    String?   @db.VarChar(255)
+  video_id   String?   @db.VarChar(255)
+  created_at DateTime? @db.Date
+
+  user       Users?     @relation(fields: [user_id], references: [id])
+  video      Video?    @relation(fields: [video_id], references: [id])
+}
+
+model Subscription {
+  id            Int      @id @default(autoincrement())
+  follower_id   String?  @db.VarChar(255)
+  following_id  String?  @db.VarChar(255)
+  created_at    DateTime? @db.Date
+
+  follower      Users?    @relation("FollowedBy", fields: [follower_id], references: [id])
+  following     Users?    @relation("Following", fields: [following_id], references: [id])
+}
+
+model Notification {
+  id         String    @id @unique @db.VarChar(255)
+  user_id    String?   @db.VarChar(255)
+  content    String?   @db.VarChar(255)
+  received    Boolean?
+  road       Boolean?
+  created_at DateTime? @db.Date
+
+  user       Users?     @relation(fields: [user_id], references: [id])
+}

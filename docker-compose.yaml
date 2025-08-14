@@ -1,6 +1,6 @@
 # Docker Compose file for VidFlow
 # Uses latest versions with security best practices
-# RabbitMQ 4.1.2 with Management Plugin
+# RabbitMQ 4.1.2 Alpine with Management Plugin (smaller, more secure)
 # PostgreSQL 17.5 with enhanced security
 
 # Networks - Custom bridge network for service isolation
@@ -62,14 +62,14 @@ services:
         chown -R 999:999 /postgres-data
         chmod -R 755 /postgres-data
         
-        # RabbitMQ data and logs
-        chown -R 999:999 /rabbitmq-data /rabbitmq-logs
+        # RabbitMQ data and logs (Alpine uses UID 100:101 instead of 999:999)
+        chown -R 100:101 /rabbitmq-data /rabbitmq-logs
         chmod -R 755 /rabbitmq-data /rabbitmq-logs
-        
+
         # Create and fix Erlang cookie permissions
         mkdir -p /rabbitmq-data
         echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /rabbitmq-data/.erlang.cookie
-        chown 999:999 /rabbitmq-data/.erlang.cookie
+        chown 100:101 /rabbitmq-data/.erlang.cookie
         chmod 600 /rabbitmq-data/.erlang.cookie
         
         # MinIO data directory
@@ -121,7 +121,8 @@ services:
     # Security: Prevent privilege escalation
     security_opt:
       - no-new-privileges:true
-
+    ports:
+      - "5432:5432"
     # Environment variables
     environment:
       POSTGRES_DB: vidflow
@@ -159,9 +160,9 @@ services:
       init-permissions:
         condition: service_completed_successfully
 
-  # RabbitMQ 4.1.2 with Management Plugin - Latest version with security
+  # RabbitMQ 4.1.2 with Management Plugin - Alpine version for better security and smaller footprint
   rabbitmq:
-    image: rabbitmq:4.1.2-management
+    image: rabbitmq:4.1.2-management-alpine
     container_name: vidflow-rabbitmq
     restart: unless-stopped
 
@@ -257,7 +258,7 @@ services:
 
   # MinIO S3-Compatible Object Storage - Latest version with security
   minio:
-    image: quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
+    image: quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z-cpuv1
     container_name: vidflow-minio
     restart: unless-stopped
 
@@ -432,7 +433,7 @@ services:
 
   # Elasticsearch - Search and Analytics Engine - Latest version with security
   elasticsearch:
-    image: elasticsearch:8.16.2
+    image: elasticsearch:9.1.0
     container_name: vidflow-elasticsearch
     restart: unless-stopped
 
@@ -586,9 +587,114 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - LOG_LEVEL=info
+      # MinIO Configuration
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=vidflow_admin
+      - MINIO_SECRET_KEY=VidFlow_MinIO_2024!
+      - MINIO_BUCKET_NAME=videos
+      - MINIO_USE_SSL=false
+      # MinIO Signed URL Configuration
+      - SIGNED_URL_DOWNLOAD_EXPIRY=3600  # 1 hour
+      - SIGNED_URL_UPLOAD_EXPIRY=900     # 15 minutes
+      - SIGNED_URL_PROCESS_EXPIRY=14400  # 4 hours
+      # RabbitMQ Configuration
       - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
+      - RABBITMQ_QUEUE=video.quality.processing
+      # Processing Configuration
+      - WORKING_DIR=./video
+      - MAX_CONCURRENCY=2
+      - PROCESS_TIMEOUT=3600  # 1 hour
     networks:
       - vidflow-network
     depends_on:
       rabbitmq:
         condition: service_healthy
+
+  main-service:
+    build:
+      context: ./main-service
+      dockerfile: Dockerfile
+    container_name: vidflow-main-service
+    restart: unless-stopped
+    volumes:
+      - ./main-service:/app
+    ports:
+      - "50051:50051"  # gRPC port
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://vidflow_user:VidFlow_PostgreSQL_2024!@postgres:5432/vidflow
+      - LOG_LEVEL=info
+    networks:
+      - vidflow-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "node.*main"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: vidflow-client
+    restart: unless-stopped
+    volumes:
+      - ./client:/app
+    ports:
+      - "3001:3001"
+
+    networks:
+      - vidflow-network
+ 
+
+
+  upload-service:
+    build:
+      context: ./upload-service
+      dockerfile: Dockerfile
+    container_name: vidflow-upload-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - HTTP_PORT=8081
+      - GRPC_MAIN_SERVICE_ADDR=main-service:50051
+      - MAX_FILE_SIZE=524288000  # 500MB
+      - ALLOWED_FILE_TYPES=video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm,video/mkv,application/octet-stream
+      - UPLOAD_DIR=/tmp/uploads
+      - LOG_LEVEL=info
+    # MinIO Configuration
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=vidflow_admin
+      - MINIO_SECRET_KEY=VidFlow_MinIO_2024!
+      - MINIO_BUCKET_NAME=videos
+      - MINIO_USE_SSL=false
+      # MinIO Signed URL Configuration
+      - SIGNED_URL_DOWNLOAD_EXPIRY=3600  # 1 hour
+      - SIGNED_URL_UPLOAD_EXPIRY=900     # 15 minutes
+      - SIGNED_URL_PROCESS_EXPIRY=14400  # 4 hours
+      # RabbitMQ Configuration
+      - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
+      - RABBITMQ_QUEUE=video.quality.processing
+
+    networks:
+      - vidflow-network
+    depends_on:
+      main-service:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+      
