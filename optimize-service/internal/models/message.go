@@ -4,40 +4,28 @@ import "time"
 
 // VideoProcessingMessage represents the message sent to RabbitMQ for video processing
 type VideoProcessingMessage struct {
-	VideoID           string    `json:"video_id"`
-	SignedURL         string    `json:"signed_url"`
-	ExpiresAt         time.Time `json:"expires_at"`
-	ObjectName        string    `json:"object_name"`
-	UserID            string    `json:"user_id,omitempty"`
-	Description       string    `json:"description,omitempty"`
-	OriginalFilename  string    `json:"original_filename,omitempty"`
-	ProcessingOptions ProcessingOptions `json:"processing_options,omitempty"`
-}
-
-// ProcessingOptions defines video processing parameters
-type ProcessingOptions struct {
-	Qualities       []string `json:"qualities,omitempty"`        // e.g., ["144p", "360p", "720p"]
-	OutputFormat    string   `json:"output_format,omitempty"`    // e.g., "hls", "mp4"
-	SegmentDuration int      `json:"segment_duration,omitempty"` // for HLS segments in seconds
+	VideoID    string `json:"video_id"`
+	SignedURL  string `json:"signed_url"`
+	ObjectName string `json:"object_name"`
 }
 
 // ProcessedVideoResult represents the result of video processing
 type ProcessedVideoResult struct {
-	VideoID       string                    `json:"video_id"`
-	Status        string                    `json:"status"` // "success", "failed", "processing"
-	Error         string                    `json:"error,omitempty"`
-	ProcessedAt   time.Time                 `json:"processed_at"`
-	Qualities     []ProcessedVideoQuality   `json:"qualities,omitempty"`
+	VideoID     string                  `json:"video_id"`
+	Status      string                  `json:"status"` // "success", "failed", "processing"
+	Error       string                  `json:"error,omitempty"`
+	ProcessedAt time.Time               `json:"processed_at"`
+	Qualities   []ProcessedVideoQuality `json:"qualities,omitempty"`
 }
 
 // ProcessedVideoQuality represents a processed video quality variant
 type ProcessedVideoQuality struct {
-	Quality       string    `json:"quality"`        // e.g., "720p"
-	ObjectName    string    `json:"object_name"`    // MinIO object name
-	SignedURL     string    `json:"signed_url"`     // Signed URL for access
-	ExpiresAt     time.Time `json:"expires_at"`     // URL expiration
-	FileSize      int64     `json:"file_size"`      // File size in bytes
-	Duration      float64   `json:"duration"`       // Video duration in seconds
-	Format        string    `json:"format"`         // e.g., "hls", "mp4"
-	ManifestURL   string    `json:"manifest_url,omitempty"` // For HLS playlists
+	Quality     string    `json:"quality"`                // e.g., "720p"
+	ObjectName  string    `json:"object_name"`            // MinIO object name
+	SignedURL   string    `json:"signed_url"`             // Signed URL for access
+	ExpiresAt   time.Time `json:"expires_at"`             // URL expiration
+	FileSize    int64     `json:"file_size"`              // File size in bytes
+	Duration    float64   `json:"duration"`               // Video duration in seconds
+	Format      string    `json:"format"`                 // e.g., "hls", "mp4"
+	ManifestURL string    `json:"manifest_url,omitempty"` // For HLS playlists
 }
