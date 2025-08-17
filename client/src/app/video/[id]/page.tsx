@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 
 export default function Video() {
   return (
-    <div className="flex flex-col gap-3 col-span-9">
+    <div className="flex flex-col gap-3 max-md:col-span-12 col-span-9">
       <Player
         src='https://files.vidstack.io/sprite-fight/hls/stream.m3u8'
         viewType='video'
