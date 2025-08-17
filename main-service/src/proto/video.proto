@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 package video;
-
 option go_package = "proto/video";
 message VideoResponse {
 
@@ -13,9 +12,10 @@ message CreateVideoRequest {
 }
 
 message VideoQuality{
-    string quality = 1;
-    string video_id = 2;
-    string source = 3;
+    string id = 1;
+    string quality = 2;
+    string video_id = 3;
+    string object_id = 4;
 }
 
 
