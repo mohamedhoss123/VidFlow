@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
+	"optimize-service/internal/models"
 	"optimize-service/internal/util"
 	"os"
 
@@ -24,7 +26,7 @@ func main() {
 
 	q, err := ch.QueueDeclare(
 		"video.quality.processing", // name
-		false,                      // durable
+		true,                       // durable
 		false,                      // delete when unused
 		false,                      // exclusive
 		false,                      // no-wait
@@ -50,7 +52,13 @@ func main() {
 	forever := make(chan bool)
 	go func() {
 		for d := range msgs {
-			util.Optomize((string(d.Body)))
+			var payload models.CreateVideoPaylodRabbitmq
+			if err := json.Unmarshal(d.Body, &payload); err != nil {
+				log.Printf("Error decoding JSON: %v", err)
+				continue
+			}
+
+			util.Optomize(payload)
 		}
 	}()
 	<-forever

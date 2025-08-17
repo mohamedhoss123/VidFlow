@@ -1,22 +1,35 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"optimize-service/internal/config"
+	"optimize-service/internal/models"
+	"optimize-service/internal/services"
 	"os"
 
 	"os/exec"
+
+	"github.com/sirupsen/logrus"
 )
 
-func Optomize(url string) {
+func Optomize(payload models.CreateVideoPaylodRabbitmq) {
 	for key, resolution := range config.Resolutions {
 		clearDir()
 		id, err := NewUUIDv7()
 		if err != nil {
 			log.Fatal("error generating uuid")
 		}
-		toQuality(id, url, resolution)
+		minioService, err := services.NewMinIOService(config.Load(), logrus.New())
+		if err != nil {
+			log.Fatal("error creating minio service")
+		}
+		url, err := minioService.GenerateSignedURLForProcessedVideo(context.Background(), payload.ObjectId)
+		if err != nil {
+			log.Fatal("error generating signed url")
+		}
+		toQuality(id, url.String(), resolution)
 		uploadToBucket(key)
 	}
 

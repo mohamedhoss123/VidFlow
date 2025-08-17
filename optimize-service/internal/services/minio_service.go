@@ -58,8 +58,6 @@ func NewMinIOService(cfg *config.Config, logger *logrus.Logger) (*MinIOService, 
 
 // UploadProcessedVideo uploads a processed video file to MinIO
 func (m *MinIOService) UploadProcessedVideo(ctx context.Context, localPath, objectName string) error {
-	uploadCtx, cancel := context.WithTimeout(ctx, time.Duration(m.config.ProcessTimeout)*time.Second)
-	defer cancel()
 
 	m.logger.WithFields(logrus.Fields{
 		"local_path":  localPath,
@@ -91,7 +89,7 @@ func (m *MinIOService) UploadProcessedVideo(ctx context.Context, localPath, obje
 	}
 
 	// Upload file
-	_, err = m.client.PutObject(uploadCtx, m.bucketName, objectName, file, fileInfo.Size(), minio.PutObjectOptions{
+	_, err = m.client.PutObject(ctx, m.bucketName, objectName, file, fileInfo.Size(), minio.PutObjectOptions{
 		ContentType: contentType,
 		UserMetadata: map[string]string{
 			"processed-timestamp": time.Now().UTC().Format(time.RFC3339),
@@ -114,7 +112,7 @@ func (m *MinIOService) UploadProcessedVideo(ctx context.Context, localPath, obje
 }
 
 // GenerateSignedURLForProcessedVideo generates a signed URL for accessing processed video
-func (m *MinIOService) GenerateSignedURLForProcessedVideo(ctx context.Context, objectName string) (*url.URL, time.Time, error) {
+func (m *MinIOService) GenerateSignedURLForProcessedVideo(ctx context.Context, objectName string) (*url.URL, error) {
 	expiry := time.Duration(m.config.SignedURLDownloadExpiry) * time.Second
 
 	// Set request parameters for content-disposition if needed
@@ -127,20 +125,10 @@ func (m *MinIOService) GenerateSignedURLForProcessedVideo(ctx context.Context, o
 			"bucket":      m.bucketName,
 			"expiry":      expiry,
 		}).Error("Failed to generate presigned GET URL for processed video")
-		return nil, time.Time{}, fmt.Errorf("failed to generate presigned GET URL: %w", err)
+		return nil, fmt.Errorf("failed to generate presigned GET URL: %w", err)
 	}
 
-	expiresAt := time.Now().UTC().Add(expiry)
-
-	m.logger.WithFields(logrus.Fields{
-		"object_name":   objectName,
-		"bucket":        m.bucketName,
-		"expiry":        expiry,
-		"presigned_url": presignedURL.String(),
-		"expires_at":    expiresAt,
-	}).Info("Generated presigned GET URL for processed video successfully")
-
-	return presignedURL, expiresAt, nil
+	return presignedURL, nil
 }
 
 // HealthCheck performs a health check on the MinIO service
