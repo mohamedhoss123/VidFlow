@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Children } from "react";
-import Player from "~/components/player";
+import Player from "~/components/advanced-player";
 import { timeAgo } from "~/lib/utils";
 import type { ReactNode } from "react";
 

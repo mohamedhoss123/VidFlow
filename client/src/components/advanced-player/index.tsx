@@ -1,3 +1,5 @@
+'use client'
+
 import '@vidstack/react/player/styles/base.css';
 
 import { useEffect, useRef } from 'react';
@@ -18,7 +20,7 @@ import {
 import { VideoLayout } from './components/layouts/video-layout';
 import { textTracks } from './tracks';
 
-export function Player() {
+export default function Player() {
   let player = useRef<MediaPlayerInstance>(null);
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export function Player() {
         ))}
       </MediaProvider>
 
-      <VideoLayout thumbnails="https://files.vidstack.io/sprite-fight/thumbnails.vtt" />
+      {/* <VideoLayout thumbnails="https://files.vidstack.io/sprite-fight/thumbnails.vtt" /> */}
     </MediaPlayer>
   );
 }

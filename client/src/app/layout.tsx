@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import '@vidstack/react/player/styles/default/theme.css';
-import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 import { AppSidebar } from "~/components/app-sidebar";
 import Header from "~/components/header";
