@@ -68,7 +68,7 @@ model Video {
 
 model VideoQuality {
   id         String        @id @unique @db.VarChar(255)
-  quality     VideoQualityOptions?
+  quality     String?
   video_id   String?       @db.VarChar(255)
   video      Video?        @relation(fields: [video_id], references: [id])
   objectId     String?       @db.VarChar(255)
