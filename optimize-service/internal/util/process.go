@@ -7,38 +7,50 @@ import (
 	"optimize-service/internal/config"
 	"optimize-service/internal/models"
 	"optimize-service/internal/services"
+	"optimize-service/proto/video"
 	"os"
 
 	"os/exec"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 )
 
 func Optomize(payload models.CreateVideoPaylodRabbitmq) {
+	minioService, err := services.GetMinIOService(config.Load(), logrus.New())
+	if err != nil {
+		log.Fatal(err)
+	}
+	minioService.DownloadVideo(payload.ObjectId)
+	videoResponse := video.VideoReadyRequest{
+		VideoId: payload.VideoID,
+		Quality: []*video.VideoQuality{},
+	}
 	for key, resolution := range config.Resolutions {
-		clearDir()
+		clearQalityDir()
 		id, err := NewUUIDv7()
 		if err != nil {
 			log.Fatal("error generating uuid")
 		}
-		minioService, err := services.NewMinIOService(config.Load(), logrus.New())
-		if err != nil {
-			log.Fatal("error creating minio service")
-		}
-		url, err := minioService.GenerateSignedURLForProcessedVideo(context.Background(), payload.ObjectId)
-		if err != nil {
-			log.Fatal("error generating signed url")
-		}
-		toQuality(id, url.String(), resolution)
-		uploadToBucket(key)
+
+		toQuality(id, "./video/"+payload.ObjectId, resolution)
+		uploadToBucket()
+		videoResponse.Quality = append(videoResponse.Quality, &video.VideoQuality{
+			Id:       id,
+			Quality:  key,
+			VideoId:  payload.VideoID,
+			ObjectId: payload.ObjectId,
+		})
+
 	}
+	makeVideoRead(videoResponse)
 
 }
 
 func toQuality(id string, url string, resultion config.Resolution) {
 
-	segmentFilename := fmt.Sprintf("./video/%s-%%03d.tss", id)
-	outputM3U8 := fmt.Sprintf("./video/optimized-%s.m3u8", id)
+	segmentFilename := fmt.Sprintf("./video/quality/%s-%%03d.tss", id)
+	outputM3U8 := fmt.Sprintf("./video/quality/optimized-%s.m3u8", id)
 
 	cmd := exec.Command(
 		"ffmpeg",
@@ -61,7 +73,18 @@ func toQuality(id string, url string, resultion config.Resolution) {
 
 }
 
-func clearDir() {
+func clearQalityDir() {
+	cmd := exec.Command("rm", "-r", "video/quality")
+	if err := cmd.Run(); err != nil {
+		log.Println("Error command faild", err)
+	}
+	cmd = exec.Command("mkdir", "video/quality")
+	if err := cmd.Run(); err != nil {
+		log.Println("Error command faild", err)
+	}
+}
+
+func ClearVideoDir() {
 	cmd := exec.Command("rm", "-r", "video")
 	if err := cmd.Run(); err != nil {
 		log.Println("Error command faild", err)
@@ -72,6 +95,31 @@ func clearDir() {
 	}
 }
 
-func uploadToBucket(quality string) {
-	fmt.Println(quality)
+func uploadToBucket() {
+	minioService, err := services.GetMinIOService(config.Load(), logrus.New())
+	if err != nil {
+		log.Fatal(err)
+	}
+	files, err := os.ReadDir("./video/quality")
+	if err != nil {
+		panic(err)
+	}
+
+	for _, f := range files {
+
+		minioService.UploadVideo(f.Name())
+	}
+}
+
+func makeVideoRead(videoResponse video.VideoReadyRequest) {
+	conn, err := grpc.NewClient("main-service:50051", grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	client := video.NewVideoServiceClient(conn)
+	_, err = client.MakeVideoReady(context.Background(), &videoResponse)
+	if err != nil {
+		log.Fatalf("could not make video ready: %v", err)
+	}
 }
