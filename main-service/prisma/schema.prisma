@@ -71,7 +71,7 @@ model VideoQuality {
   quality     VideoQualityOptions?
   video_id   String?       @db.VarChar(255)
   video      Video?        @relation(fields: [video_id], references: [id])
-  source     String?       @db.VarChar(255)
+  objectId     String?       @db.VarChar(255)
   created_at DateTime?     @db.Date
 }
 
