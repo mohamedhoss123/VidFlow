@@ -119,9 +119,10 @@ func (x *CreateVideoRequest) GetDescription() string {
 
 type VideoQuality struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Quality       string                 `protobuf:"bytes,1,opt,name=quality,proto3" json:"quality,omitempty"`
-	VideoId       string                 `protobuf:"bytes,2,opt,name=video_id,json=videoId,proto3" json:"video_id,omitempty"`
-	Source        string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Quality       string                 `protobuf:"bytes,2,opt,name=quality,proto3" json:"quality,omitempty"`
+	VideoId       string                 `protobuf:"bytes,3,opt,name=video_id,json=videoId,proto3" json:"video_id,omitempty"`
+	ObjectId      string                 `protobuf:"bytes,4,opt,name=object_id,json=objectId,proto3" json:"object_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -156,6 +157,13 @@ func (*VideoQuality) Descriptor() ([]byte, []int) {
 	return file_video_proto_rawDescGZIP(), []int{2}
 }
 
+func (x *VideoQuality) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
 func (x *VideoQuality) GetQuality() string {
 	if x != nil {
 		return x.Quality
@@ -170,9 +178,9 @@ func (x *VideoQuality) GetVideoId() string {
 	return ""
 }
 
-func (x *VideoQuality) GetSource() string {
+func (x *VideoQuality) GetObjectId() string {
 	if x != nil {
-		return x.Source
+		return x.ObjectId
 	}
 	return ""
 }
@@ -238,11 +246,12 @@ const file_video_proto_rawDesc = "" +
 	"\x12CreateVideoRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\"[\n" +
-	"\fVideoQuality\x12\x18\n" +
-	"\aquality\x18\x01 \x01(\tR\aquality\x12\x19\n" +
-	"\bvideo_id\x18\x02 \x01(\tR\avideoId\x12\x16\n" +
-	"\x06source\x18\x03 \x01(\tR\x06source\"]\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\"p\n" +
+	"\fVideoQuality\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\aquality\x18\x02 \x01(\tR\aquality\x12\x19\n" +
+	"\bvideo_id\x18\x03 \x01(\tR\avideoId\x12\x1b\n" +
+	"\tobject_id\x18\x04 \x01(\tR\bobjectId\"]\n" +
 	"\x11VideoReadyRequest\x12\x19\n" +
 	"\bvideo_id\x18\x01 \x01(\tR\avideoId\x12-\n" +
 	"\aquality\x18\x02 \x03(\v2\x13.video.VideoQualityR\aquality2\x94\x01\n" +
