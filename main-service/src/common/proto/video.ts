@@ -19,9 +19,10 @@ export interface CreateVideoRequest {
 }
 
 export interface VideoQuality {
+  id: string;
   quality: string;
   videoId: string;
-  source: string;
+  objectId: string;
 }
 
 export interface VideoReadyRequest {
@@ -165,19 +166,22 @@ export const CreateVideoRequest: MessageFns<CreateVideoRequest> = {
 };
 
 function createBaseVideoQuality(): VideoQuality {
-  return { quality: "", videoId: "", source: "" };
+  return { id: "", quality: "", videoId: "", objectId: "" };
 }
 
 export const VideoQuality: MessageFns<VideoQuality> = {
   encode(message: VideoQuality, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
     if (message.quality !== "") {
-      writer.uint32(10).string(message.quality);
+      writer.uint32(18).string(message.quality);
     }
     if (message.videoId !== "") {
-      writer.uint32(18).string(message.videoId);
+      writer.uint32(26).string(message.videoId);
     }
-    if (message.source !== "") {
-      writer.uint32(26).string(message.source);
+    if (message.objectId !== "") {
+      writer.uint32(34).string(message.objectId);
     }
     return writer;
   },
@@ -194,7 +198,7 @@ export const VideoQuality: MessageFns<VideoQuality> = {
             break;
           }
 
-          message.quality = reader.string();
+          message.id = reader.string();
           continue;
         }
         case 2: {
@@ -202,7 +206,7 @@ export const VideoQuality: MessageFns<VideoQuality> = {
             break;
           }
 
-          message.videoId = reader.string();
+          message.quality = reader.string();
           continue;
         }
         case 3: {
@@ -210,7 +214,15 @@ export const VideoQuality: MessageFns<VideoQuality> = {
             break;
           }
 
-          message.source = reader.string();
+          message.videoId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.objectId = reader.string();
           continue;
         }
       }
@@ -224,22 +236,26 @@ export const VideoQuality: MessageFns<VideoQuality> = {
 
   fromJSON(object: any): VideoQuality {
     return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
       quality: isSet(object.quality) ? globalThis.String(object.quality) : "",
       videoId: isSet(object.videoId) ? globalThis.String(object.videoId) : "",
-      source: isSet(object.source) ? globalThis.String(object.source) : "",
+      objectId: isSet(object.objectId) ? globalThis.String(object.objectId) : "",
     };
   },
 
   toJSON(message: VideoQuality): unknown {
     const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
     if (message.quality !== "") {
       obj.quality = message.quality;
     }
     if (message.videoId !== "") {
       obj.videoId = message.videoId;
     }
-    if (message.source !== "") {
-      obj.source = message.source;
+    if (message.objectId !== "") {
+      obj.objectId = message.objectId;
     }
     return obj;
   },
@@ -249,9 +265,10 @@ export const VideoQuality: MessageFns<VideoQuality> = {
   },
   fromPartial<I extends Exact<DeepPartial<VideoQuality>, I>>(object: I): VideoQuality {
     const message = createBaseVideoQuality();
+    message.id = object.id ?? "";
     message.quality = object.quality ?? "";
     message.videoId = object.videoId ?? "";
-    message.source = object.source ?? "";
+    message.objectId = object.objectId ?? "";
     return message;
   },
 };
