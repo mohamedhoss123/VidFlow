@@ -3,7 +3,7 @@ import { GrpcMethod, MessagePattern, Payload } from '@nestjs/microservices';
 import { VideoService } from '../service/video.service';
 import { CreateVideoDto } from '../dto/create-video.dto';
 import { UpdateVideoDto } from '../dto/update-video.dto';
-import { CreateVideoRequest } from 'src/common/proto/video';
+import { CreateVideoRequest, VideoReadyRequest } from 'src/common/proto/video';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { GetVideoDto, VideoResponseDto } from '../dto/video.dto';
 import { VideoGuard } from '../guard/video.guard';
@@ -15,6 +15,12 @@ export class VideoController {
   @GrpcMethod('VideoService', 'CreateVideo')
   create(@Payload() createVideoDto: CreateVideoRequest) {
     return this.videoService.create(createVideoDto);
+  }
+
+  @GrpcMethod('VideoService', 'MakeVideoReady')
+  makeVideoReady(@Payload() videoReadyRequest: VideoReadyRequest) {
+    console.log(videoReadyRequest)
+    return this.videoService.makeVideoReady(videoReadyRequest);
   }
 
   @Get(':id')

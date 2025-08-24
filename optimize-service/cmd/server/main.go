@@ -57,7 +57,8 @@ func main() {
 				log.Printf("Error decoding JSON: %v", err)
 				continue
 			}
-
+			util.ClearVideoDir()
+			
 			util.Optomize(payload)
 		}
 	}()
