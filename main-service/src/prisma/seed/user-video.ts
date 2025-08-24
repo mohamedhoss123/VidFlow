@@ -33,13 +33,13 @@ async function main() {
           {
             id: randomUUID(),
             quality: VideoQualityOptions.p1080,
-            source: 'https://example.com/video-1080p.mp4',
+            objectId: 'https://example.com/video-1080p.mp4',
             created_at: new Date(),
           },
           {
             id: randomUUID(),
             quality: VideoQualityOptions.p720,
-            source: 'https://example.com/video-720p.mp4',
+            objectId: 'https://example.com/video-720p.mp4',
             created_at: new Date(),
           },
         ],
