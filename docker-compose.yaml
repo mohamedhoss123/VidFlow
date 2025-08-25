@@ -549,8 +549,8 @@ services:
     container_name: vidflow-kong
     restart: unless-stopped
     volumes:
-      - ./kong/go-auth:/usr/local/bin/go-auth
-      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+      - ./kong/go-auth:/usr/local/bin/go-:z
+      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml:z
     environment:
       - KONG_DATABASE=off
       - KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
@@ -583,7 +583,7 @@ services:
     container_name: vidflow-optimize-service
     restart: unless-stopped
     volumes:
-      - ./optimize-service:/app
+      - ./optimize-service:/app:z
     ports:
       - "8080:8080"
     environment:
