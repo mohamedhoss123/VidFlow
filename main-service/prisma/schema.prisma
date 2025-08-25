@@ -60,6 +60,7 @@ model Video {
   comments_count Int?
   visibility     VideoVisibility?
   status         VideoStatus?
+  length         Int?
   created_at     DateTime?     @db.Date
   qualities      VideoQuality[]
   likes          Likes[]

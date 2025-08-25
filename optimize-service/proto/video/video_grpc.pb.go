@@ -27,8 +27,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VideoServiceClient interface {
-	CreateVideo(ctx context.Context, in *CreateVideoRequest, opts ...grpc.CallOption) (*VideoResponse, error)
-	MakeVideoReady(ctx context.Context, in *VideoReadyRequest, opts ...grpc.CallOption) (*VideoResponse, error)
+	CreateVideo(ctx context.Context, in *CreateVideoRequest, opts ...grpc.CallOption) (*CreateVideoResponse, error)
+	MakeVideoReady(ctx context.Context, in *VideoReadyRequest, opts ...grpc.CallOption) (*VideoReadyResponse, error)
 }
 
 type videoServiceClient struct {
@@ -39,9 +39,9 @@ func NewVideoServiceClient(cc grpc.ClientConnInterface) VideoServiceClient {
 	return &videoServiceClient{cc}
 }
 
-func (c *videoServiceClient) CreateVideo(ctx context.Context, in *CreateVideoRequest, opts ...grpc.CallOption) (*VideoResponse, error) {
+func (c *videoServiceClient) CreateVideo(ctx context.Context, in *CreateVideoRequest, opts ...grpc.CallOption) (*CreateVideoResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(VideoResponse)
+	out := new(CreateVideoResponse)
 	err := c.cc.Invoke(ctx, VideoService_CreateVideo_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -49,9 +49,9 @@ func (c *videoServiceClient) CreateVideo(ctx context.Context, in *CreateVideoReq
 	return out, nil
 }
 
-func (c *videoServiceClient) MakeVideoReady(ctx context.Context, in *VideoReadyRequest, opts ...grpc.CallOption) (*VideoResponse, error) {
+func (c *videoServiceClient) MakeVideoReady(ctx context.Context, in *VideoReadyRequest, opts ...grpc.CallOption) (*VideoReadyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(VideoResponse)
+	out := new(VideoReadyResponse)
 	err := c.cc.Invoke(ctx, VideoService_MakeVideoReady_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -63,8 +63,8 @@ func (c *videoServiceClient) MakeVideoReady(ctx context.Context, in *VideoReadyR
 // All implementations must embed UnimplementedVideoServiceServer
 // for forward compatibility.
 type VideoServiceServer interface {
-	CreateVideo(context.Context, *CreateVideoRequest) (*VideoResponse, error)
-	MakeVideoReady(context.Context, *VideoReadyRequest) (*VideoResponse, error)
+	CreateVideo(context.Context, *CreateVideoRequest) (*CreateVideoResponse, error)
+	MakeVideoReady(context.Context, *VideoReadyRequest) (*VideoReadyResponse, error)
 	mustEmbedUnimplementedVideoServiceServer()
 }
 
@@ -75,10 +75,10 @@ type VideoServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedVideoServiceServer struct{}
 
-func (UnimplementedVideoServiceServer) CreateVideo(context.Context, *CreateVideoRequest) (*VideoResponse, error) {
+func (UnimplementedVideoServiceServer) CreateVideo(context.Context, *CreateVideoRequest) (*CreateVideoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateVideo not implemented")
 }
-func (UnimplementedVideoServiceServer) MakeVideoReady(context.Context, *VideoReadyRequest) (*VideoResponse, error) {
+func (UnimplementedVideoServiceServer) MakeVideoReady(context.Context, *VideoReadyRequest) (*VideoReadyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MakeVideoReady not implemented")
 }
 func (UnimplementedVideoServiceServer) mustEmbedUnimplementedVideoServiceServer() {}

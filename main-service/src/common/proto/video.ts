@@ -9,7 +9,11 @@ import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 
 export const protobufPackage = "video";
 
-export interface VideoResponse {
+export interface CreateVideoResponse {
+  videoId: string;
+}
+
+export interface VideoReadyResponse {
 }
 
 export interface CreateVideoRequest {
@@ -27,22 +31,81 @@ export interface VideoQuality {
 
 export interface VideoReadyRequest {
   videoId: string;
+  length: number;
   quality: VideoQuality[];
 }
 
-function createBaseVideoResponse(): VideoResponse {
-  return {};
+function createBaseCreateVideoResponse(): CreateVideoResponse {
+  return { videoId: "" };
 }
 
-export const VideoResponse: MessageFns<VideoResponse> = {
-  encode(_: VideoResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const CreateVideoResponse: MessageFns<CreateVideoResponse> = {
+  encode(message: CreateVideoResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.videoId !== "") {
+      writer.uint32(10).string(message.videoId);
+    }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): VideoResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateVideoResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseVideoResponse();
+    const message = createBaseCreateVideoResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.videoId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateVideoResponse {
+    return { videoId: isSet(object.videoId) ? globalThis.String(object.videoId) : "" };
+  },
+
+  toJSON(message: CreateVideoResponse): unknown {
+    const obj: any = {};
+    if (message.videoId !== "") {
+      obj.videoId = message.videoId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateVideoResponse>, I>>(base?: I): CreateVideoResponse {
+    return CreateVideoResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateVideoResponse>, I>>(object: I): CreateVideoResponse {
+    const message = createBaseCreateVideoResponse();
+    message.videoId = object.videoId ?? "";
+    return message;
+  },
+};
+
+function createBaseVideoReadyResponse(): VideoReadyResponse {
+  return {};
+}
+
+export const VideoReadyResponse: MessageFns<VideoReadyResponse> = {
+  encode(_: VideoReadyResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): VideoReadyResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVideoReadyResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55,20 +118,20 @@ export const VideoResponse: MessageFns<VideoResponse> = {
     return message;
   },
 
-  fromJSON(_: any): VideoResponse {
+  fromJSON(_: any): VideoReadyResponse {
     return {};
   },
 
-  toJSON(_: VideoResponse): unknown {
+  toJSON(_: VideoReadyResponse): unknown {
     const obj: any = {};
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<VideoResponse>, I>>(base?: I): VideoResponse {
-    return VideoResponse.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<VideoReadyResponse>, I>>(base?: I): VideoReadyResponse {
+    return VideoReadyResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<VideoResponse>, I>>(_: I): VideoResponse {
-    const message = createBaseVideoResponse();
+  fromPartial<I extends Exact<DeepPartial<VideoReadyResponse>, I>>(_: I): VideoReadyResponse {
+    const message = createBaseVideoReadyResponse();
     return message;
   },
 };
@@ -274,7 +337,7 @@ export const VideoQuality: MessageFns<VideoQuality> = {
 };
 
 function createBaseVideoReadyRequest(): VideoReadyRequest {
-  return { videoId: "", quality: [] };
+  return { videoId: "", length: 0, quality: [] };
 }
 
 export const VideoReadyRequest: MessageFns<VideoReadyRequest> = {
@@ -282,8 +345,11 @@ export const VideoReadyRequest: MessageFns<VideoReadyRequest> = {
     if (message.videoId !== "") {
       writer.uint32(10).string(message.videoId);
     }
+    if (message.length !== 0) {
+      writer.uint32(16).int32(message.length);
+    }
     for (const v of message.quality) {
-      VideoQuality.encode(v!, writer.uint32(18).fork()).join();
+      VideoQuality.encode(v!, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -304,7 +370,15 @@ export const VideoReadyRequest: MessageFns<VideoReadyRequest> = {
           continue;
         }
         case 2: {
-          if (tag !== 18) {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.length = reader.int32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
             break;
           }
 
@@ -323,6 +397,7 @@ export const VideoReadyRequest: MessageFns<VideoReadyRequest> = {
   fromJSON(object: any): VideoReadyRequest {
     return {
       videoId: isSet(object.videoId) ? globalThis.String(object.videoId) : "",
+      length: isSet(object.length) ? globalThis.Number(object.length) : 0,
       quality: globalThis.Array.isArray(object?.quality)
         ? object.quality.map((e: any) => VideoQuality.fromJSON(e))
         : [],
@@ -333,6 +408,9 @@ export const VideoReadyRequest: MessageFns<VideoReadyRequest> = {
     const obj: any = {};
     if (message.videoId !== "") {
       obj.videoId = message.videoId;
+    }
+    if (message.length !== 0) {
+      obj.length = Math.round(message.length);
     }
     if (message.quality?.length) {
       obj.quality = message.quality.map((e) => VideoQuality.toJSON(e));
@@ -346,14 +424,15 @@ export const VideoReadyRequest: MessageFns<VideoReadyRequest> = {
   fromPartial<I extends Exact<DeepPartial<VideoReadyRequest>, I>>(object: I): VideoReadyRequest {
     const message = createBaseVideoReadyRequest();
     message.videoId = object.videoId ?? "";
+    message.length = object.length ?? 0;
     message.quality = object.quality?.map((e) => VideoQuality.fromPartial(e)) || [];
     return message;
   },
 };
 
 export interface VideoService {
-  CreateVideo(request: CreateVideoRequest): Promise<VideoResponse>;
-  MakeVideoReady(request: VideoReadyRequest): Promise<VideoResponse>;
+  CreateVideo(request: CreateVideoRequest): Promise<CreateVideoResponse>;
+  MakeVideoReady(request: VideoReadyRequest): Promise<VideoReadyResponse>;
 }
 
 export const VideoServiceServiceName = "video.VideoService";
@@ -366,16 +445,16 @@ export class VideoServiceClientImpl implements VideoService {
     this.CreateVideo = this.CreateVideo.bind(this);
     this.MakeVideoReady = this.MakeVideoReady.bind(this);
   }
-  CreateVideo(request: CreateVideoRequest): Promise<VideoResponse> {
+  CreateVideo(request: CreateVideoRequest): Promise<CreateVideoResponse> {
     const data = CreateVideoRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "CreateVideo", data);
-    return promise.then((data) => VideoResponse.decode(new BinaryReader(data)));
+    return promise.then((data) => CreateVideoResponse.decode(new BinaryReader(data)));
   }
 
-  MakeVideoReady(request: VideoReadyRequest): Promise<VideoResponse> {
+  MakeVideoReady(request: VideoReadyRequest): Promise<VideoReadyResponse> {
     const data = VideoReadyRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "MakeVideoReady", data);
-    return promise.then((data) => VideoResponse.decode(new BinaryReader(data)));
+    return promise.then((data) => VideoReadyResponse.decode(new BinaryReader(data)));
   }
 }
 
