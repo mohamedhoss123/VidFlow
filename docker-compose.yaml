@@ -48,12 +48,12 @@ services:
     container_name: vidflow-init-permissions
     restart: "no"
     volumes:
-      - postgres-data:/postgres-data
-      - rabbitmq-data:/rabbitmq-data
-      - rabbitmq-logs:/rabbitmq-logs
-      - minio-data:/minio-data
-      - elasticsearch-data:/elasticsearch-data
-      - elasticsearch-logs:/elasticsearch-logs
+      - postgres-data:/postgres-data:z
+      - rabbitmq-data:/rabbitmq-data:z
+      - rabbitmq-logs:/rabbitmq-logs:z
+      - minio-data:/minio-data:z
+      - elasticsearch-data:/elasticsearch-data:z
+      - elasticsearch-logs:/elasticsearch-logs:z
     command: |
       sh -c "
         echo 'Setting up volume permissions...'
