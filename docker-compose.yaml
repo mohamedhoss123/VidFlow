@@ -618,7 +618,7 @@ services:
     container_name: vidflow-main-service
     restart: unless-stopped
     volumes:
-      - ./main-service:/app
+      - ./main-service:/app:z
     ports:
       - "50051:50051"  # gRPC port
       - "3000:3000"
