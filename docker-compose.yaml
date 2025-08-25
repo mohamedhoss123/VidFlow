@@ -140,7 +140,7 @@ services:
 
     # Volumes
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data:z
       - ./postgres/init:/docker-entrypoint-initdb.d:ro,z
 
     # Network
@@ -549,7 +549,7 @@ services:
     container_name: vidflow-kong
     restart: unless-stopped
     volumes:
-      - ./kong/go-auth:/usr/local/bin/go-:z
+      - ./kong/go-auth:/usr/local/bin/go-auth:z
       - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml:z
     environment:
       - KONG_DATABASE=off
@@ -619,6 +619,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./main-service:/app:z
+      - /app/node_modules
     ports:
       - "50051:50051"  # gRPC port
       - "3000:3000"
@@ -644,7 +645,7 @@ services:
     container_name: vidflow-client
     restart: unless-stopped
     volumes:
-      - ./client:/app
+      - ./client:/app:z
     ports:
       - "3001:3001"
 
