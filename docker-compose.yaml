@@ -687,7 +687,7 @@ services:
       - vidflow-network
     depends_on:
       main-service:
-        condition: service_started
+        condition: service_healthy
       minio:
         condition: service_healthy
       rabbitmq:
