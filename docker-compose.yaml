@@ -195,16 +195,16 @@ services:
     security_opt:
       - no-new-privileges:true
 
-    # Environment variables (deprecated variables removed, using config file instead)
+    # Environment variables
     environment:
-      # Only keep essential environment variables
+      # RabbitMQ configuration
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq.conf
       # Erlang cookie for cluster authentication
       RABBITMQ_ERLANG_COOKIE: VIDFLOW_RABBITMQ_COOKIE_2025
-
-    # Secrets (removed since we're using config file)
-    # secrets:
-    #   - rabbitmq-password
+      # Default user configuration (fallback)
+      RABBITMQ_DEFAULT_USER: vidflow_admin
+      RABBITMQ_DEFAULT_PASS: VidFlow_RabbitMQ_2025!
+      RABBITMQ_DEFAULT_VHOST: vidflow
 
     # Ports - Only expose necessary ports
     ports:
@@ -215,20 +215,11 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
       - rabbitmq-logs:/var/log/rabbitmq
-      - ./rabbitmq/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro,z
+      - ./rabbitmq/init/init-rabbitmq.sh:/usr/local/bin/init-rabbitmq.sh:ro,z
 
-    # Custom command to ensure proper Erlang cookie setup
-    command: >
-      bash -c "
-        # Ensure cookie file exists with correct permissions
-        if [ ! -f /var/lib/rabbitmq/.erlang.cookie ]; then
-          echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /var/lib/rabbitmq/.erlang.cookie
-          chmod 600 /var/lib/rabbitmq/.erlang.cookie
-          chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
-        fi
-        # Start RabbitMQ normally
-        docker-entrypoint.sh rabbitmq-server
-      "
+    # Use custom initialization script
+    command: ["/usr/local/bin/init-rabbitmq.sh"]
 
     # Network
     networks:
