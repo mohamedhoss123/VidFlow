@@ -12,9 +12,36 @@ RABBITMQ_PID=$!
 
 # Wait for RabbitMQ to be ready
 echo "Waiting for RabbitMQ to start..."
+sleep 15
+
+# Wait for RabbitMQ ping to work
+MAX_ATTEMPTS=30
+ATTEMPT=0
 until rabbitmqctl ping > /dev/null 2>&1; do
-    echo "Waiting for RabbitMQ to be ready..."
-    sleep 2
+    ATTEMPT=$((ATTEMPT + 1))
+    if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+        echo "RabbitMQ failed to respond to ping after $MAX_ATTEMPTS attempts"
+        exit 1
+    fi
+    echo "Waiting for RabbitMQ to be ready... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+    sleep 3
+done
+
+# Additional wait and check that we can actually run commands
+echo "RabbitMQ ping successful, waiting for full initialization..."
+sleep 5
+
+# Verify RabbitMQ is truly ready by checking if we can list users
+MAX_ATTEMPTS=10
+ATTEMPT=0
+until rabbitmqctl list_users > /dev/null 2>&1; do
+    ATTEMPT=$((ATTEMPT + 1))
+    if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+        echo "RabbitMQ failed to become fully ready after $MAX_ATTEMPTS attempts"
+        exit 1
+    fi
+    echo "RabbitMQ not fully ready yet, waiting... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+    sleep 3
 done
 
 echo "RabbitMQ is ready. Setting up user and vhost..."

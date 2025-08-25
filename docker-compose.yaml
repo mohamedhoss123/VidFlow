@@ -601,6 +601,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      minio:
+        condition: service_healthy
 
   main-service:
     build:
