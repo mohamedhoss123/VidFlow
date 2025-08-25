@@ -517,7 +517,7 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -u elastic:VidFlow_Elasticsearch_2024! -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -646,6 +646,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./client:/app:z
+      - /app/node_modules
     ports:
       - "3001:3001"
 
