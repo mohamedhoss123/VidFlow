@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"optimize-service/internal/config"
@@ -9,12 +10,21 @@ import (
 	"optimize-service/internal/services"
 	"optimize-service/proto/video"
 	"os"
+	"strconv"
 
 	"os/exec"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
+
+type FFProbeFormat struct {
+	Duration string `json:"duration"`
+}
+
+type FFProbeOutput struct {
+	Format FFProbeFormat `json:"format"`
+}
 
 func Optomize(payload models.CreateVideoPaylodRabbitmq) {
 	minioService, err := services.GetMinIOService(config.Load(), logrus.New())
@@ -43,10 +53,29 @@ func Optomize(payload models.CreateVideoPaylodRabbitmq) {
 		})
 
 	}
+
+	videoResponse.Length = getVideoLength("./video/" + payload.ObjectId)
 	makeVideoRead(videoResponse)
 
 }
 
+func getVideoLength(url string) int32 {
+	cmd := exec.Command("ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", url)
+	out, err := cmd.Output()
+	if err != nil {
+		log.Fatalf("failed to run ffprobe: %v", err)
+	}
+
+	var result FFProbeOutput
+	if err := json.Unmarshal(out, &result); err != nil {
+		log.Fatalf("failed to unmarshal ffprobe output: %v", err)
+	}
+	seconds, err := strconv.ParseFloat(result.Format.Duration, 64)
+	if err != nil {
+		panic("video lengnth is not valid")
+	}
+	return int32(seconds)
+}
 func toQuality(id string, url string, resultion config.Resolution) {
 
 	segmentFilename := fmt.Sprintf("./video/quality/%s-%%03d.tss", id)
