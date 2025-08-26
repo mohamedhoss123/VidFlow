@@ -1,16 +1,16 @@
-import { Controller, Get, Query ,Param, Headers, UsePipes, Req, ValidationPipe, UseGuards} from '@nestjs/common';
+import { Controller, Get, Query ,Param, Headers, UsePipes, Res, ValidationPipe, UseGuards} from '@nestjs/common';
 import { GrpcMethod, MessagePattern, Payload } from '@nestjs/microservices';
 import { VideoService } from '../service/video.service';
-import { CreateVideoDto } from '../dto/create-video.dto';
-import { UpdateVideoDto } from '../dto/update-video.dto';
+import { MinioService } from '../service/minio.service';
 import { CreateVideoRequest, CreateVideoResponse, VideoReadyRequest } from 'src/common/proto/video';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { GetVideoDto, VideoResponseDto } from '../dto/video.dto';
 import { VideoGuard } from '../guard/video.guard';
+import {type Response} from "express"
 @ApiBearerAuth('access-token') // Match name in addBearerAuth 
 @Controller("video")
 export class VideoController {
-  constructor(private readonly videoService: VideoService) {}
+  constructor(private readonly videoService: VideoService,private readonly minioService: MinioService) {}
 
   @GrpcMethod('VideoService', 'CreateVideo')
   async create(@Payload() createVideoDto: CreateVideoRequest):Promise<CreateVideoResponse> {
@@ -31,6 +31,15 @@ export class VideoController {
   async getVideo(@Param("id") params:string) {
     console.log(params)
     return this.videoService.getVideoWithQualities(params);
+  }
+  @Get('download/:key')
+  async download(@Param('key') key: string, @Res() res: Response) {
+    const stream = await this.minioService.streamFile(key);
+
+    res.setHeader('Content-Disposition', `attachment; filename="${key}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+
+    stream.pipe(res);
   }
 
 }

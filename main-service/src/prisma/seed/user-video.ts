@@ -1,5 +1,5 @@
 // prisma/seed.ts
-import { PrismaClient, VideoQualityOptions, VideoVisibility, VideoStatus } from '@prisma/client';
+import { PrismaClient, VideoVisibility, VideoStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
@@ -32,13 +32,13 @@ async function main() {
         create: [
           {
             id: randomUUID(),
-            quality: VideoQualityOptions.p1080,
+            quality: "p1080",
             objectId: 'https://example.com/video-1080p.mp4',
             created_at: new Date(),
           },
           {
             id: randomUUID(),
-            quality: VideoQualityOptions.p720,
+            quality: "p720",
             objectId: 'https://example.com/video-720p.mp4',
             created_at: new Date(),
           },

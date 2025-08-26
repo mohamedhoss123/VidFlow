@@ -8,15 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum VideoQualityOptions {
-  p144
-  p240
-  p360
-  p480
-  p720
-  p1080
-}
-
 enum VideoVisibility {
   public
   private
