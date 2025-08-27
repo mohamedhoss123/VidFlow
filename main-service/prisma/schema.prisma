@@ -9,9 +9,9 @@ datasource db {
 }
 
 enum VideoVisibility {
-  public
-  private
-  unlisted
+  PUBLIC
+  PRIVATE
+  UNLISTED
 }
 
 enum VideoStatus {
@@ -25,7 +25,7 @@ model Users {
   name          String    @db.VarChar(255)
   email         String    @db.VarChar(255) @unique
   password      String    @db.VarChar(255)
-  created_at    DateTime  @db.Date
+  created_at    DateTime  @db.Date @default(now())
   videos        Video[]
   likes         Likes[]
   comments      Comments[]
@@ -38,8 +38,8 @@ model RefreshTokens{
   id String @id @unique @db.VarChar(255)
   user_id String @db.VarChar(255)
   user Users @relation(fields: [user_id], references: [id])
-  created_at DateTime @db.Date
-  expires_at DateTime @db.Date
+  created_at DateTime @db.Date @default(now())
+  expires_at DateTime @db.Date 
 }
 model Video {
   id             String        @id @unique @db.VarChar(255)
@@ -52,7 +52,7 @@ model Video {
   visibility     VideoVisibility?
   status         VideoStatus?
   length         Int?
-  created_at     DateTime?     @db.Date
+  created_at     DateTime     @db.Date @default(now())
   qualities      VideoQuality[]
   likes          Likes[]
   comments       Comments[]
@@ -64,13 +64,13 @@ model VideoQuality {
   video_id   String?       @db.VarChar(255)
   video      Video?        @relation(fields: [video_id], references: [id])
   objectId     String?       @db.VarChar(255)
-  created_at DateTime?     @db.Date
+  created_at DateTime     @db.Date @default(now())
 }
 
 model Likes {
   user_id    String   @db.VarChar(255)
   video_id   String   @db.VarChar(255)
-  created_at DateTime? @db.Date
+  created_at DateTime @db.Date @default(now())
 
   user       Users    @relation(fields: [user_id], references: [id])
   video      Video    @relation(fields: [video_id], references: [id])
@@ -83,7 +83,7 @@ model Comments {
   content    String?   @db.VarChar(255)
   user_id    String?   @db.VarChar(255)
   video_id   String?   @db.VarChar(255)
-  created_at DateTime? @db.Date
+  created_at DateTime @db.Date @default(now())
 
   user       Users?     @relation(fields: [user_id], references: [id])
   video      Video?    @relation(fields: [video_id], references: [id])
@@ -93,7 +93,7 @@ model Subscription {
   id            Int      @id @default(autoincrement())
   follower_id   String?  @db.VarChar(255)
   following_id  String?  @db.VarChar(255)
-  created_at    DateTime? @db.Date
+  created_at    DateTime @db.Date @default(now())
 
   follower      Users?    @relation("FollowedBy", fields: [follower_id], references: [id])
   following     Users?    @relation("Following", fields: [following_id], references: [id])
@@ -105,7 +105,7 @@ model Notification {
   content    String?   @db.VarChar(255)
   received    Boolean?
   road       Boolean?
-  created_at DateTime? @db.Date
+  created_at DateTime @db.Date @default(now())
 
   user       Users?     @relation(fields: [user_id], references: [id])
 }

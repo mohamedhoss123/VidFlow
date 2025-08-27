@@ -4,9 +4,10 @@ import { VideoService } from '../service/video.service';
 import { MinioService } from '../service/minio.service';
 import { CreateVideoRequest, CreateVideoResponse, VideoReadyRequest } from 'src/common/proto/video';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { GetVideoDto, VideoResponseDto } from '../dto/video.dto';
+import {VideoResponseDto } from '../dto/video.dto';
 import { VideoGuard } from '../guard/video.guard';
 import {type Response} from "express"
+import { VideoPaginationDto } from '../dto/video-pagination.dto';
 @ApiBearerAuth('access-token') // Match name in addBearerAuth 
 @Controller("video")
 export class VideoController {
@@ -21,6 +22,12 @@ export class VideoController {
   makeVideoReady(@Payload() videoReadyRequest: VideoReadyRequest) {
     this.videoService.makeVideoReady(videoReadyRequest);
   }
+  @Get()
+  async getVideos(@Query() query:VideoPaginationDto){
+    return this.videoService.getVideos(query);
+  }
+
+
 
   @Get(':id')
   @UsePipes(new ValidationPipe({ transform: true }))
