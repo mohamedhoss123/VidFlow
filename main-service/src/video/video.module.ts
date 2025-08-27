@@ -6,11 +6,11 @@ import { LikeService } from './service/like.service';
 import { LikeController } from './controller/like.controller';
 import { CommentController } from './controller/comment.controller';
 import { CommentService } from './service/comment.service';
-import { S3Service } from './service/minio.service';
+import { MinioService } from './service/minio.service';
 
 @Module({
   imports:[PrismaModule],
   controllers: [VideoController, LikeController, CommentController],
-  providers: [VideoService, LikeService, CommentService, S3Service],
+  providers: [VideoService, LikeService, CommentService,MinioService],
 })
 export class VideoModule {}

@@ -3,9 +3,10 @@ import { CreateVideoDto } from '../dto/create-video.dto';
 import { UpdateVideoDto } from '../dto/update-video.dto';
 import { CreateVideoRequest, VideoReadyRequest } from 'src/common/proto/video';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { VideoResponseDto } from '../dto/video.dto';
+import {  VideoResponseDto } from '../dto/video.dto';
 import { VideoStatus, VideoVisibility } from '@prisma/client';
 import { uuidv7 } from 'uuidv7';
+import { VideoPaginationDto } from '../dto/video-pagination.dto';
 
 @Injectable()
 export class VideoService {
@@ -20,7 +21,7 @@ export class VideoService {
       user_id:createVideoDto.userId,
       likes_count:0,
       comments_count:0,
-      visibility:VideoVisibility.public,
+      visibility:VideoVisibility.PUBLIC,
       status:VideoStatus.PROCESSING,
       created_at:new Date(),
       qualities:{
@@ -52,5 +53,27 @@ export class VideoService {
         length:videoReadyRequest.length
       }
     })
+  }
+
+  async getVideos(videoPaginationDto:VideoPaginationDto){
+    const videos = await this.prismaService.video.findMany({
+      take: videoPaginationDto.limit,
+      skip: videoPaginationDto.cursor ? 1 : 0,
+      cursor: videoPaginationDto.cursor ? { id: videoPaginationDto.cursor } : undefined,
+      where:{visibility:VideoVisibility.PUBLIC},
+      orderBy: {
+        created_at: 'desc'
+      },
+      include: {
+        user: true,
+      }
+    })
+  
+    const nextCursor = videos.length > 0 ? videos[videos.length - 1].id : null
+  
+    return {
+      videos,
+      nextCursor
+    }
   }
 }
