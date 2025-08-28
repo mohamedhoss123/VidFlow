@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant U as User
+    participant US as UploadService
+    participant M as MainService
+    participant O as OptimizeSErvice
+
+    U ->> US: video
+    US -->>U: OK
+    US ->> M: createVideoPayload
+    M -->>US: createVideoResponse
+    US -->> O: createVideoPaylodRabbitmq
+    O -->> M: VideoOpmizeRresponse
+

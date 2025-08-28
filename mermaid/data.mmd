@@ -1,0 +1,29 @@
+classDiagram
+    class createVideoPayload{
+        +name: string
+        +description: string
+        +user_id: string
+    }
+    class createVideoResponse{
+        +id: string
+    }
+
+    class createVideoPaylodRabbitmq{
+        +videoId: string
+        +objectId: string
+    }
+
+    class VideoOpmizeRresponse{
+        +videoId: string
+        +qualityes: VideoQuality[]
+
+    }
+    class VideoQuality{
+        +id: string
+        +quality:string
+        +videoId: string
+        +objectId: string
+        +createdAt: date
+    }
+  
+  
