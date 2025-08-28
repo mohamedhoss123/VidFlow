@@ -2,18 +2,18 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+	"upload-service/internal/config"
+	"upload-service/internal/handlers"
+	"upload-service/internal/middleware"
+	"upload-service/internal/services"
 
-	"vidflow/upload-service/internal/config"
-	"vidflow/upload-service/internal/handlers"
-	"vidflow/upload-service/internal/middleware"
-	"vidflow/upload-service/internal/services"
-
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,37 +21,27 @@ func main() {
 	// Load configuration
 	cfg := config.Load()
 
-	// Setup logger
-	logger := logrus.New()
-	level, err := logrus.ParseLevel(cfg.LogLevel)
-	if err != nil {
-		logger.Warn("Invalid log level, using info")
-		level = logrus.InfoLevel
+	// Initialize logger
+	logger := setupLogger(cfg)
+	logger.Info("Starting VidFlow Upload Service...")
+
+	// Create temp directory if it doesn't exist
+	if err := os.MkdirAll(cfg.Upload.TempDir, 0755); err != nil {
+		logger.WithError(err).Fatal("Failed to create temp directory")
 	}
-	logger.SetLevel(level)
-	logger.SetFormatter(&logrus.JSONFormatter{})
 
-	logger.WithFields(logrus.Fields{
-		"http_port":              cfg.HTTPPort,
-		"grpc_main_service_addr": cfg.GRPCMainServiceAddr,
-		"max_file_size":          cfg.MaxFileSize,
-		"upload_dir":             cfg.UploadDir,
-	}).Info("Starting upload service")
-
-	// Initialize gRPC client
-	grpcClient, err := services.NewGRPCClient(cfg.GRPCMainServiceAddr, logger)
-	if err != nil {
-		logger.WithError(err).Fatal("Failed to initialize gRPC client")
-	}
-	defer grpcClient.Close()
-
-	// Initialize MinIO service
+	// Initialize services
 	minioService, err := services.NewMinIOService(cfg, logger)
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to initialize MinIO service")
 	}
 
-	// Initialize RabbitMQ service
+	grpcService, err := services.NewGRPCService(cfg, logger)
+	if err != nil {
+		logger.WithError(err).Fatal("Failed to initialize gRPC service")
+	}
+	defer grpcService.Close()
+
 	rabbitmqService, err := services.NewRabbitMQService(cfg, logger)
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to initialize RabbitMQ service")
@@ -59,34 +49,15 @@ func main() {
 	defer rabbitmqService.Close()
 
 	// Initialize handlers
-	uploadHandler := handlers.NewUploadHandler(cfg, grpcClient, minioService, rabbitmqService, logger)
-	healthHandler := handlers.NewHealthHandler(grpcClient, minioService, rabbitmqService, logger)
+	uploadHandler := handlers.NewUploadHandler(minioService, grpcService, rabbitmqService, cfg, logger)
+	healthHandler := handlers.NewHealthHandler(minioService, grpcService, rabbitmqService, logger)
 
-	// Setup router
-	router := mux.NewRouter()
-
-	// Add middleware
-	router.Use(middleware.LoggingMiddleware(logger))
-	router.Use(middleware.CORSMiddleware())
-	router.Use(middleware.RecoveryMiddleware(logger))
-
-	// Register routes
-	router.HandleFunc("/upload", uploadHandler.HandleUpload).Methods("POST", "OPTIONS")
-	router.HandleFunc("/signed-url", uploadHandler.HandleGenerateSignedURL).Methods("POST", "OPTIONS")
-	router.HandleFunc("/health", healthHandler.HandleHealth).Methods("GET")
-	router.HandleFunc("/health/ready", healthHandler.HandleReadiness).Methods("GET")
-	router.HandleFunc("/health/live", healthHandler.HandleLiveness).Methods("GET")
-
-	// Root endpoint
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"service":"upload-service","status":"running","version":"1.0.0"}`))
-	}).Methods("GET")
+	// Setup Gin router
+	router := setupRouter(cfg, logger, uploadHandler, healthHandler)
 
 	// Create HTTP server
-	srv := &http.Server{
-		Addr:         ":" + cfg.HTTPPort,
+	server := &http.Server{
+		Addr:         fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port),
 		Handler:      router,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -95,27 +66,130 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		logger.WithField("port", cfg.HTTPPort).Info("Starting HTTP server")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.WithError(err).Fatal("Failed to start HTTP server")
+		logger.WithFields(logrus.Fields{
+			"host": cfg.Server.Host,
+			"port": cfg.Server.Port,
+		}).Info("Starting HTTP server")
+
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.WithError(err).Fatal("Failed to start server")
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown the server
+	// Wait for interrupt signal to gracefully shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	logger.Info("Shutting down server...")
 
-	// Create a deadline for shutdown
+	// Create context with timeout for graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// Shutdown HTTP server
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		logger.WithError(err).Error("Server forced to shutdown")
 	}
 
-	logger.Info("Server exited")
+	logger.Info("Server shutdown completed")
+}
+
+// setupLogger configures the logger based on configuration
+func setupLogger(cfg *config.Config) *logrus.Logger {
+	logger := logrus.New()
+
+	// Set log level
+	level, err := logrus.ParseLevel(cfg.Log.Level)
+	if err != nil {
+		level = logrus.InfoLevel
+	}
+	logger.SetLevel(level)
+
+	// Set log format
+	if cfg.Log.Format == "json" {
+		logger.SetFormatter(&logrus.JSONFormatter{
+			TimestampFormat: time.RFC3339,
+		})
+	} else {
+		logger.SetFormatter(&logrus.TextFormatter{
+			FullTimestamp:   true,
+			TimestampFormat: time.RFC3339,
+		})
+	}
+
+	return logger
+}
+
+// setupRouter configures the Gin router with all routes and middleware
+func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handlers.UploadHandler, healthHandler *handlers.HealthHandler) *gin.Engine {
+	// Set Gin mode based on log level
+	if cfg.Log.Level == "debug" {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	router := gin.New()
+
+	// Global middleware
+	router.Use(middleware.ErrorHandlingMiddleware(logger))
+	router.Use(middleware.CORSMiddleware())
+	router.Use(middleware.SecurityHeadersMiddleware())
+	router.Use(middleware.RequestIDMiddleware())
+	router.Use(middleware.HealthCheckMiddleware())
+	router.Use(middleware.LoggingMiddleware(logger))
+	router.Use(middleware.RateLimitMiddleware(logger))
+
+	// Health check routes (no auth required)
+	health := router.Group("/health")
+	{
+		health.GET("", healthHandler.HealthCheck)
+		health.HEAD("", healthHandler.HealthCheck)
+		health.GET("/live", healthHandler.LivenessProbe)
+		health.HEAD("/live", healthHandler.LivenessProbe)
+		health.GET("/ready", healthHandler.ReadinessProbe)
+		health.HEAD("/ready", healthHandler.ReadinessProbe)
+	}
+
+	// API routes
+	api := router.Group("/api/v1")
+	{
+		// Upload routes
+		upload := api.Group("/upload")
+		upload.Use(middleware.RequestSizeLimitMiddleware(cfg.Upload.MaxFileSize))
+		{
+			upload.POST("/video", uploadHandler.UploadVideo)
+			upload.GET("/status/:video_id", uploadHandler.GetUploadStatus)
+			upload.GET("/limits", uploadHandler.GetUploadLimits)
+		}
+	}
+
+	// Root route
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"service":   "VidFlow Upload Service",
+			"version":   "1.0.0",
+			"status":    "running",
+			"timestamp": time.Now(),
+			"endpoints": gin.H{
+				"health":        "/health",
+				"upload_video":  "/api/v1/upload/video",
+				"upload_status": "/api/v1/upload/status/:video_id",
+				"upload_limits": "/api/v1/upload/limits",
+			},
+		})
+	})
+
+	// 404 handler
+	router.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "Not Found",
+			"code":    http.StatusNotFound,
+			"message": "The requested endpoint was not found",
+			"path":    c.Request.URL.Path,
+		})
+	})
+
+	return router
 }
