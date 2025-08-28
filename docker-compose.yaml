@@ -622,6 +622,7 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://vidflow_user:VidFlow_PostgreSQL_2024!@postgres:5432/vidflow
       - LOG_LEVEL=info
+      - JWT_SECRET=VidFlow_JWT_Secret_2025_Super_Secure_Key_For_Development
     networks:
       - vidflow-network
     depends_on:
@@ -669,7 +670,7 @@ services:
       main-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health/live", "||", "exit", "1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8081/health/live || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

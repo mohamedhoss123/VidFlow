@@ -145,8 +145,11 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 	health := router.Group("/health")
 	{
 		health.GET("", healthHandler.HealthCheck)
+		health.HEAD("", healthHandler.HealthCheck)
 		health.GET("/live", healthHandler.LivenessProbe)
+		health.HEAD("/live", healthHandler.LivenessProbe)
 		health.GET("/ready", healthHandler.ReadinessProbe)
+		health.HEAD("/ready", healthHandler.ReadinessProbe)
 	}
 
 	// API routes
@@ -165,10 +168,10 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 	// Root route
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"service":     "VidFlow Upload Service",
-			"version":     "1.0.0",
-			"status":      "running",
-			"timestamp":   time.Now(),
+			"service":   "VidFlow Upload Service",
+			"version":   "1.0.0",
+			"status":    "running",
+			"timestamp": time.Now(),
 			"endpoints": gin.H{
 				"health":        "/health",
 				"upload_video":  "/api/v1/upload/video",
