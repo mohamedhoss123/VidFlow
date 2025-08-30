@@ -79,7 +79,7 @@ func (s *MinIOService) ensureBucketExists(ctx context.Context) error {
 func (s *MinIOService) UploadVideo(ctx context.Context, reader io.Reader, fileInfo *models.FileInfo) (string, error) {
 	// Generate unique object ID
 	objectID := s.generateObjectID(fileInfo.OriginalName)
-	
+
 	// Set content type
 	contentType := fileInfo.ContentType
 	if contentType == "" {
@@ -164,35 +164,120 @@ func (s *MinIOService) HealthCheck(ctx context.Context) error {
 func (s *MinIOService) generateObjectID(originalName string) string {
 	// Generate UUID
 	id := uuid.New().String()
-	
+
 	// Get file extension
 	ext := filepath.Ext(originalName)
 	if ext == "" {
 		ext = ".mp4" // default extension
 	}
-	
+
 	// Create object ID with timestamp and UUID
 	timestamp := time.Now().UTC().Format("2006/01/02")
 	objectID := fmt.Sprintf("videos/%s/%s%s", timestamp, id, strings.ToLower(ext))
-	
+
 	return objectID
 }
 
 // ListVideos lists videos in the bucket (for debugging/admin purposes)
 func (s *MinIOService) ListVideos(ctx context.Context, prefix string) ([]minio.ObjectInfo, error) {
 	var objects []minio.ObjectInfo
-	
+
 	objectCh := s.client.ListObjects(ctx, s.bucketName, minio.ListObjectsOptions{
 		Prefix:    prefix,
 		Recursive: true,
 	})
-	
+
 	for object := range objectCh {
 		if object.Err != nil {
 			return nil, fmt.Errorf("error listing objects: %w", object.Err)
 		}
 		objects = append(objects, object)
 	}
-	
+
 	return objects, nil
+}
+
+// UploadThumbnail uploads a thumbnail image to MinIO
+func (s *MinIOService) UploadThumbnail(ctx context.Context, reader io.Reader, fileInfo *models.FileInfo, videoID string) (string, error) {
+	// Generate object ID for thumbnail
+	objectID := s.generateThumbnailObjectID(videoID, fileInfo.OriginalName)
+
+	s.logger.WithFields(logrus.Fields{
+		"video_id":      videoID,
+		"object_id":     objectID,
+		"original_name": fileInfo.OriginalName,
+		"size":          fileInfo.Size,
+		"content_type":  fileInfo.ContentType,
+	}).Info("Starting thumbnail upload to MinIO")
+
+	// Set upload options
+	uploadOptions := minio.PutObjectOptions{
+		ContentType: fileInfo.ContentType,
+		UserMetadata: map[string]string{
+			"original-name": fileInfo.OriginalName,
+			"video-id":      videoID,
+			"upload-type":   "thumbnail",
+		},
+	}
+
+	// Upload thumbnail to MinIO
+	uploadInfo, err := s.client.PutObject(ctx, s.bucketName, objectID, reader, fileInfo.Size, uploadOptions)
+	if err != nil {
+		s.logger.WithFields(logrus.Fields{
+			"object_id": objectID,
+			"video_id":  videoID,
+			"error":     err.Error(),
+		}).Error("Failed to upload thumbnail to MinIO")
+		return "", fmt.Errorf("failed to upload thumbnail: %w", err)
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"object_id":     objectID,
+		"video_id":      videoID,
+		"bucket":        s.bucketName,
+		"size":          uploadInfo.Size,
+		"etag":          uploadInfo.ETag,
+		"original_name": fileInfo.OriginalName,
+	}).Info("Successfully uploaded thumbnail to MinIO")
+
+	return objectID, nil
+}
+
+// DeleteThumbnail deletes a thumbnail from MinIO
+func (s *MinIOService) DeleteThumbnail(ctx context.Context, objectID string) error {
+	err := s.client.RemoveObject(ctx, s.bucketName, objectID, minio.RemoveObjectOptions{})
+	if err != nil {
+		s.logger.WithFields(logrus.Fields{
+			"object_id": objectID,
+			"error":     err.Error(),
+		}).Error("Failed to delete thumbnail from MinIO")
+		return fmt.Errorf("failed to delete thumbnail: %w", err)
+	}
+
+	s.logger.WithField("object_id", objectID).Info("Successfully deleted thumbnail from MinIO")
+	return nil
+}
+
+// GetThumbnailURL generates a presigned URL for thumbnail access
+func (s *MinIOService) GetThumbnailURL(ctx context.Context, objectID string, expiry time.Duration) (string, error) {
+	url, err := s.client.PresignedGetObject(ctx, s.bucketName, objectID, expiry, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned URL for thumbnail: %w", err)
+	}
+	return url.String(), nil
+}
+
+// generateThumbnailObjectID generates a unique object ID for the thumbnail
+func (s *MinIOService) generateThumbnailObjectID(videoID, originalName string) string {
+	// Get file extension
+	ext := filepath.Ext(originalName)
+	if ext == "" {
+		ext = ".jpg" // default extension for thumbnails
+	}
+
+	// Create object ID with video ID and timestamp
+	timestamp := time.Now().UTC().Format("2006/01/02")
+	objectID := fmt.Sprintf("thumbnails/%s/%s/%s%s", timestamp, videoID, uuid.New().String(), strings.ToLower(ext))
+
+	return objectID
 }
