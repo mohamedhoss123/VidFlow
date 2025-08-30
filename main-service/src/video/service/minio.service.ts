@@ -19,5 +19,9 @@ export class MinioService {
 
     async streamFile(key: string): Promise<Readable> {
         return await this.minioClient.getObject(this.bucket, key);
-      }
+    }
+
+    async getSignedUrl(objectId: string, expiry: number = 3600): Promise<string> {
+        return await this.minioClient.presignedGetObject(this.bucket, objectId, expiry);
+    }
 }
