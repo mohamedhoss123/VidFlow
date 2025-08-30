@@ -50,10 +50,11 @@ func main() {
 
 	// Initialize handlers
 	uploadHandler := handlers.NewUploadHandler(minioService, grpcService, rabbitmqService, cfg, logger)
+	thumbnailHandler := handlers.NewThumbnailHandler(minioService, grpcService, cfg, logger)
 	healthHandler := handlers.NewHealthHandler(minioService, grpcService, rabbitmqService, logger)
 
 	// Setup Gin router
-	router := setupRouter(cfg, logger, uploadHandler, healthHandler)
+	router := setupRouter(cfg, logger, uploadHandler, thumbnailHandler, healthHandler)
 
 	// Create HTTP server
 	server := &http.Server{
@@ -122,7 +123,7 @@ func setupLogger(cfg *config.Config) *logrus.Logger {
 }
 
 // setupRouter configures the Gin router with all routes and middleware
-func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handlers.UploadHandler, healthHandler *handlers.HealthHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handlers.UploadHandler, thumbnailHandler *handlers.ThumbnailHandler, healthHandler *handlers.HealthHandler) *gin.Engine {
 	// Set Gin mode based on log level
 	if cfg.Log.Level == "debug" {
 		gin.SetMode(gin.DebugMode)
@@ -162,6 +163,10 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 			upload.POST("/video", uploadHandler.UploadVideo)
 			upload.GET("/status/:video_id", uploadHandler.GetUploadStatus)
 			upload.GET("/limits", uploadHandler.GetUploadLimits)
+
+			// Thumbnail routes
+			upload.POST("/thumbnail", thumbnailHandler.UploadThumbnail)
+			upload.GET("/thumbnail/:video_id", thumbnailHandler.GetThumbnailStatus)
 		}
 	}
 
@@ -173,10 +178,12 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 			"status":    "running",
 			"timestamp": time.Now(),
 			"endpoints": gin.H{
-				"health":        "/health",
-				"upload_video":  "/api/v1/upload/video",
-				"upload_status": "/api/v1/upload/status/:video_id",
-				"upload_limits": "/api/v1/upload/limits",
+				"health":           "/health",
+				"upload_video":     "/api/v1/upload/video",
+				"upload_status":    "/api/v1/upload/status/:video_id",
+				"upload_limits":    "/api/v1/upload/limits",
+				"upload_thumbnail": "/api/v1/upload/thumbnail",
+				"thumbnail_status": "/api/v1/upload/thumbnail/:video_id",
 			},
 		})
 	})
