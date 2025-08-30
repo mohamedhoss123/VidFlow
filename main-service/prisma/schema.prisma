@@ -9,9 +9,9 @@ datasource db {
 }
 
 enum VideoVisibility {
-  PUBLIC
-  PRIVATE
-  UNLISTED
+  public
+  private
+  unlisted
 }
 
 enum VideoStatus {
@@ -42,20 +42,21 @@ model RefreshTokens{
   expires_at DateTime @db.Date 
 }
 model Video {
-  id             String        @id @unique @db.VarChar(255)
-  name           String?       @db.VarChar(255)
-  description    String?       @db.VarChar(255)
-  user_id        String?       @db.VarChar(255)
-  user           Users?         @relation(fields: [user_id], references: [id])
-  likes_count    Int?
-  comments_count Int?
-  visibility     VideoVisibility?
-  status         VideoStatus?
-  length         Int?
-  created_at     DateTime     @db.Date @default(now())
-  qualities      VideoQuality[]
-  likes          Likes[]
-  comments       Comments[]
+  id                  String        @id @unique @db.VarChar(255)
+  name                String?       @db.VarChar(255)
+  description         String?       @db.VarChar(255)
+  user_id             String?       @db.VarChar(255)
+  user                Users?         @relation(fields: [user_id], references: [id])
+  likes_count         Int?
+  comments_count      Int?
+  visibility          VideoVisibility?
+  status              VideoStatus?
+  length              Int?
+  thumbnail_object_id String?       @db.VarChar(255)
+  created_at          DateTime     @db.Date @default(now())
+  qualities           VideoQuality[]
+  likes               Likes[]
+  comments            Comments[]
 }
 
 model VideoQuality {
