@@ -21,7 +21,7 @@ export class VideoService {
       user_id:createVideoDto.userId,
       likes_count:0,
       comments_count:0,
-      visibility:VideoVisibility.PUBLIC,
+      visibility:VideoVisibility.public,
       status:VideoStatus.PROCESSING,
       created_at:new Date(),
       qualities:{
@@ -60,7 +60,7 @@ export class VideoService {
       take: videoPaginationDto.limit,
       skip: videoPaginationDto.cursor ? 1 : 0,
       cursor: videoPaginationDto.cursor ? { id: videoPaginationDto.cursor } : undefined,
-      where:{visibility:VideoVisibility.PUBLIC},
+      where:{visibility:VideoVisibility.public},
       orderBy: {
         created_at: 'desc'
       },
