@@ -19,7 +19,10 @@ COPY . .
 # Generate Prisma client
 RUN pnpm prisma generate
 
+# Copy and setup startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
-# Start development server
-CMD ["pnpm", "run", "start:dev"]
+# Start development server with migration
+CMD ["sh", "/app/start.sh"]
 
