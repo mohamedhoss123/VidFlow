@@ -65,7 +65,11 @@ export class VideoService {
         created_at: 'desc'
       },
       include: {
-        user: true,
+        user: {
+          select:{
+            name:true,
+          }
+        },
       }
     })
   
