@@ -16,12 +16,15 @@ async function bootstrap() {
     {
       transport: Transport.GRPC,
       options: {
-        package: 'video',
-        protoPath: join(__dirname, 'proto/video.proto'),
+        package: ['video', 'thumbnail'],
+        protoPath: [
+          join(__dirname, 'proto/video.proto'),
+          join(__dirname, 'proto/thumbnail.proto'),
+        ],
         url: '0.0.0.0:50051',
       },
     },
-  );  
+  );
   app.setGlobalPrefix("api")
    const config = new DocumentBuilder()
     .setTitle('Videflow') 
