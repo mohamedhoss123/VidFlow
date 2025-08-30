@@ -41,7 +41,7 @@ export default function Login() {
     const data = await axiosInstance.post('/api/auth/login', values)
     localStorage.setItem("token",data.data.token)
     console.log(data) 
-    router.push("/video"); // or replace() if you don't want back button to go to the old page
+    router.push("/home"); // or replace() if you don't want back button to go to the old page
   }
   return (
     <>

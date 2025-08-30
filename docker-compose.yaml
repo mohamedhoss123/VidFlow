@@ -560,6 +560,14 @@ services:
       - "8002:8002"
       - "127.0.0.1:8001:8001"
       - "127.0.0.1:8444:8444"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.75'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
     networks:
       - vidflow-network
     depends_on:
@@ -598,6 +606,14 @@ services:
       - WORKING_DIR=./video
       - MAX_CONCURRENCY=2
       - PROCESS_TIMEOUT=3600  # 1 hour
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.75'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
     networks:
       - vidflow-network
     depends_on:
@@ -617,6 +633,14 @@ services:
     ports:
       - "50051:50051"  # gRPC port
       - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.75'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://vidflow_user:VidFlow_PostgreSQL_2024!@postgres:5432/vidflow
@@ -683,9 +707,17 @@ services:
     restart: unless-stopped
     volumes:
       - ./client:/app:z
-      - /app/node_modules
+      # - /app/node_modules
     ports:
       - "3001:3001"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.75'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
     networks:
       - vidflow-network
