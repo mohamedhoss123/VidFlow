@@ -25,7 +25,7 @@ async function main() {
         user_id:"d3fc6f9e-8032-4380-801d-c5ff2c0deb2e",
         likes_count: 10,
         comments_count: 3,
-        visibility: VideoVisibility.PUBLIC,
+        visibility: VideoVisibility.public,
         status: VideoStatus.READY,
         created_at: new Date(),
         qualities: {

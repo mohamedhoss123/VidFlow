@@ -11,10 +11,18 @@ type UploadRequest struct {
 
 // UploadResponse represents the response after successful upload
 type UploadResponse struct {
-	VideoID   string `json:"video_id"`
-	ObjectID  string `json:"object_id"`
-	Message   string `json:"message"`
-	Status    string `json:"status"`
+	VideoID   string    `json:"video_id"`
+	ObjectID  string    `json:"object_id"`
+	Message   string    `json:"message"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// ThumbnailUploadResponse represents the response after successful thumbnail upload
+type ThumbnailUploadResponse struct {
+	VideoID   string    `json:"video_id"`
+	ObjectID  string    `json:"object_id"`
+	Message   string    `json:"message"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -48,11 +56,11 @@ type FileInfo struct {
 
 // VideoMetadata represents video metadata
 type VideoMetadata struct {
-	Duration    int64  `json:"duration,omitempty"`
-	Width       int    `json:"width,omitempty"`
-	Height      int    `json:"height,omitempty"`
-	Bitrate     int64  `json:"bitrate,omitempty"`
-	FrameRate   string `json:"frame_rate,omitempty"`
-	Codec       string `json:"codec,omitempty"`
-	Format      string `json:"format,omitempty"`
+	Duration  int64  `json:"duration,omitempty"`
+	Width     int    `json:"width,omitempty"`
+	Height    int    `json:"height,omitempty"`
+	Bitrate   int64  `json:"bitrate,omitempty"`
+	FrameRate string `json:"frame_rate,omitempty"`
+	Codec     string `json:"codec,omitempty"`
+	Format    string `json:"format,omitempty"`
 }

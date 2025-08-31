@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 	"upload-service/internal/config"
-	pb "upload-service/proto"
+	thumbnailpb "upload-service/proto/thumbnail"
+	videopb "upload-service/proto/video"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -15,10 +16,11 @@ import (
 
 // GRPCService handles gRPC communication with main-service
 type GRPCService struct {
-	client  pb.VideoServiceClient
-	conn    *grpc.ClientConn
-	timeout time.Duration
-	logger  *logrus.Logger
+	videoClient     videopb.VideoServiceClient
+	thumbnailClient thumbnailpb.ThumbnailServiceClient
+	conn            *grpc.ClientConn
+	timeout         time.Duration
+	logger          *logrus.Logger
 }
 
 // NewGRPCService creates a new gRPC service instance
@@ -39,14 +41,16 @@ func NewGRPCService(cfg *config.Config, logger *logrus.Logger) (*GRPCService, er
 		return nil, fmt.Errorf("failed to connect to main-service: %w", err)
 	}
 
-	// Create client
-	client := pb.NewVideoServiceClient(conn)
+	// Create clients
+	videoClient := videopb.NewVideoServiceClient(conn)
+	thumbnailClient := thumbnailpb.NewThumbnailServiceClient(conn)
 
 	service := &GRPCService{
-		client:  client,
-		conn:    conn,
-		timeout: time.Duration(cfg.GRPC.Timeout) * time.Second,
-		logger:  logger,
+		videoClient:     videoClient,
+		thumbnailClient: thumbnailClient,
+		conn:            conn,
+		timeout:         time.Duration(cfg.GRPC.Timeout) * time.Second,
+		logger:          logger,
 	}
 
 	logger.WithFields(logrus.Fields{
@@ -64,14 +68,14 @@ func (s *GRPCService) CreateVideo(ctx context.Context, userID, url, description 
 	defer cancel()
 
 	// Prepare request
-	req := &pb.CreateVideoRequest{
+	req := &videopb.CreateVideoRequest{
 		UserId:      userID,
 		Url:         url,
 		Description: description,
 	}
 
 	// Make gRPC call
-	resp, err := s.client.CreateVideo(ctx, req)
+	resp, err := s.videoClient.CreateVideo(ctx, req)
 	if err != nil {
 		s.logger.WithFields(logrus.Fields{
 			"user_id":     userID,
@@ -93,33 +97,33 @@ func (s *GRPCService) CreateVideo(ctx context.Context, userID, url, description 
 }
 
 // MakeVideoReady marks a video as ready with quality information
-func (s *GRPCService) MakeVideoReady(ctx context.Context, videoID string, length int32, qualities []*pb.VideoQuality) error {
+func (s *GRPCService) MakeVideoReady(ctx context.Context, videoID string, length int32, qualities []*videopb.VideoQuality) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	// Prepare request
-	req := &pb.VideoReadyRequest{
+	req := &videopb.VideoReadyRequest{
 		VideoId: videoID,
 		Length:  length,
 		Quality: qualities,
 	}
 
 	// Make gRPC call
-	_, err := s.client.MakeVideoReady(ctx, req)
+	_, err := s.videoClient.MakeVideoReady(ctx, req)
 	if err != nil {
 		s.logger.WithFields(logrus.Fields{
-			"video_id":       videoID,
-			"length":         length,
+			"video_id":        videoID,
+			"length":          length,
 			"qualities_count": len(qualities),
-			"error":          err.Error(),
+			"error":           err.Error(),
 		}).Error("Failed to make video ready via gRPC")
 		return fmt.Errorf("failed to make video ready: %w", err)
 	}
 
 	s.logger.WithFields(logrus.Fields{
-		"video_id":       videoID,
-		"length":         length,
+		"video_id":        videoID,
+		"length":          length,
 		"qualities_count": len(qualities),
 	}).Info("Successfully marked video as ready via gRPC")
 
@@ -187,8 +191,82 @@ func (s *GRPCService) Reconnect(cfg *config.Config) error {
 
 	// Update service
 	s.conn = conn
-	s.client = pb.NewVideoServiceClient(conn)
+	s.videoClient = videopb.NewVideoServiceClient(conn)
+	s.thumbnailClient = thumbnailpb.NewThumbnailServiceClient(conn)
 
 	s.logger.Info("Successfully reconnected to main-service")
 	return nil
+}
+
+// UploadThumbnail uploads thumbnail information via gRPC
+func (s *GRPCService) UploadThumbnail(ctx context.Context, videoID, objectID, originalFilename string, fileSize int64, contentType string) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	// Prepare request
+	req := &thumbnailpb.UploadThumbnailRequest{
+		VideoId:           videoID,
+		ThumbnailObjectId: objectID,
+		OriginalFilename:  originalFilename,
+		FileSize:          fileSize,
+		ContentType:       contentType,
+	}
+
+	// Make gRPC call
+	resp, err := s.thumbnailClient.UploadThumbnail(ctx, req)
+	if err != nil {
+		s.logger.WithFields(logrus.Fields{
+			"video_id":  videoID,
+			"object_id": objectID,
+			"error":     err.Error(),
+		}).Error("Failed to upload thumbnail via gRPC")
+		return fmt.Errorf("failed to upload thumbnail: %w", err)
+	}
+
+	if !resp.Success {
+		s.logger.WithFields(logrus.Fields{
+			"video_id":  videoID,
+			"object_id": objectID,
+			"message":   resp.Message,
+		}).Error("Thumbnail upload failed")
+		return fmt.Errorf("thumbnail upload failed: %s", resp.Message)
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"video_id":  videoID,
+		"object_id": objectID,
+		"message":   resp.Message,
+	}).Info("Successfully uploaded thumbnail via gRPC")
+
+	return nil
+}
+
+// GetThumbnail retrieves thumbnail information via gRPC
+func (s *GRPCService) GetThumbnail(ctx context.Context, videoID string) (*thumbnailpb.GetThumbnailResponse, error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	// Prepare request
+	req := &thumbnailpb.GetThumbnailRequest{
+		VideoId: videoID,
+	}
+
+	// Make gRPC call
+	resp, err := s.thumbnailClient.GetThumbnail(ctx, req)
+	if err != nil {
+		s.logger.WithFields(logrus.Fields{
+			"video_id": videoID,
+			"error":    err.Error(),
+		}).Error("Failed to get thumbnail via gRPC")
+		return nil, fmt.Errorf("failed to get thumbnail: %w", err)
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"video_id":      videoID,
+		"has_thumbnail": resp.HasThumbnail,
+	}).Info("Successfully retrieved thumbnail info via gRPC")
+
+	return resp, nil
 }
