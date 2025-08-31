@@ -2,7 +2,7 @@ _format_version: "2.1"
 
 services:
   - name: client
-    url: http://client:3001
+    url: http://172.20.0.2:3001
     routes:
       - name: client
         paths:
@@ -10,8 +10,7 @@ services:
         strip_path: false
 
   - name: main-service
-    url: http://main-service:3000
-
+    url: http://172.20.0.8:3000
     routes:
       # Protected route
       - name: secure
@@ -21,7 +20,7 @@ services:
         plugins:
           - name: go-auth
             config:
-              secret: my-secret-key
+              secret: VidFlow_JWT_Secret_2025_Super_Secure_Key_For_Development
 
       # Public route
       - name: public
@@ -29,4 +28,3 @@ services:
           - /api/auth
           - /api/docs
         strip_path: false
-

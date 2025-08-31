@@ -57,11 +57,11 @@ services:
     command: |
       sh -c "
         echo 'Setting up volume permissions...'
-        
+
         # PostgreSQL data directory
         chown -R 999:999 /postgres-data
         chmod -R 755 /postgres-data
-        
+
         # RabbitMQ data and logs (Alpine uses UID 100:101 instead of 999:999)
         chown -R 100:101 /rabbitmq-data /rabbitmq-logs
         chmod -R 755 /rabbitmq-data /rabbitmq-logs
@@ -71,15 +71,15 @@ services:
         echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /rabbitmq-data/.erlang.cookie
         chown 100:101 /rabbitmq-data/.erlang.cookie
         chmod 600 /rabbitmq-data/.erlang.cookie
-        
+
         # MinIO data directory
         chown -R 1001:1001 /minio-data
         chmod -R 755 /minio-data
-        
+
         # Elasticsearch data and logs
         chown -R 1000:1000 /elasticsearch-data /elasticsearch-logs
         chmod -R 755 /elasticsearch-data /elasticsearch-logs
-        
+
         echo 'Volume permissions setup completed successfully!'
       "
 
@@ -90,7 +90,7 @@ services:
     restart: unless-stopped
 
     # Security: Run as non-root user
-    user: "999:999"  # postgres user
+    user: "999:999" # postgres user
 
     # Security: Read-only root filesystem with writable tmp
     read_only: true
@@ -103,10 +103,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
         reservations:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
 
     # Security: Capability restrictions
     cap_drop:
@@ -134,7 +134,7 @@ services:
       # Security: Connection limits
       POSTGRES_MAX_CONNECTIONS: 100
 
-    # Remove secrets for Windows compatibility  
+    # Remove secrets for Windows compatibility
     # secrets:
     #   - postgres-password
 
@@ -175,10 +175,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
         reservations:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
 
     # Security: Capability restrictions
     cap_drop:
@@ -208,7 +208,7 @@ services:
 
     # Ports - Only expose necessary ports
     ports:
-      - "5672:5672"   # AMQP port
+      - "5672:5672" # AMQP port
       - "15672:15672" # Management UI port
 
     # Volumes
@@ -254,7 +254,7 @@ services:
     restart: unless-stopped
 
     # Security: Run as non-root user
-    user: "1001:1001"  # minio user
+    user: "1001:1001" # minio user
 
     # Security: Tmpfs for temporary files (removed read_only as MinIO needs write access to /data)
     tmpfs:
@@ -265,10 +265,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
         reservations:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
 
     # Security: Capability restrictions
     cap_drop:
@@ -309,8 +309,8 @@ services:
 
     # Ports
     ports:
-      - "9000:9000"   # MinIO API
-      - "9001:9001"   # MinIO Console
+      - "9000:9000" # MinIO API
+      - "9001:9001" # MinIO Console
 
     # Volumes
     volumes:
@@ -322,7 +322,11 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:9000/minio/health/live || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -337,7 +341,7 @@ services:
 
     # Command
     command: server /data --console-address ":9001"
-    
+
     # Dependencies
     depends_on:
       init-permissions:
@@ -350,7 +354,7 @@ services:
     restart: unless-stopped
 
     # Security: Run as non-root user
-    user: "1001:1001"  # mailpit user
+    user: "1001:1001" # mailpit user
 
     # Security: Read-only root filesystem with writable areas
     read_only: true
@@ -363,10 +367,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
 
     # Security: Capability restrictions
     cap_drop:
@@ -381,9 +385,9 @@ services:
     # Environment variables
     environment:
       # Security: Authentication (optional)
-      MP_UI_AUTH_FILE: ""  # Set to enable basic auth
-      MP_UI_TLS_CERT: ""   # Set for HTTPS
-      MP_UI_TLS_KEY: ""    # Set for HTTPS
+      MP_UI_AUTH_FILE: "" # Set to enable basic auth
+      MP_UI_TLS_CERT: "" # Set for HTTPS
+      MP_UI_TLS_KEY: "" # Set for HTTPS
 
       # Configuration
       MP_SMTP_AUTH_ACCEPT_ANY: "1"
@@ -400,8 +404,8 @@ services:
 
     # Ports
     ports:
-      - "1025:1025"   # SMTP port
-      - "8025:8025"   # Web UI port
+      - "1025:1025" # SMTP port
+      - "8025:8025" # Web UI port
 
     # Network
     networks:
@@ -409,7 +413,11 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8025/api/v1/info || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:8025/api/v1/info || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -429,17 +437,17 @@ services:
     restart: unless-stopped
 
     # Security: Run as non-root user
-    user: "1000:1000"  # elasticsearch user
+    user: "1000:1000" # elasticsearch user
 
     # Security: Resource limits
     deploy:
       resources:
         limits:
           memory: 2G
-          cpus: '2.0'
+          cpus: "2.0"
         reservations:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
 
     # Security: Capability restrictions
     cap_drop:
@@ -494,8 +502,8 @@ services:
 
     # Ports
     ports:
-      - "9200:9200"   # HTTP API
-      - "9300:9300"   # Transport
+      - "9200:9200" # HTTP API
+      - "9300:9300" # Transport
 
     # Volumes
     volumes:
@@ -508,7 +516,11 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "curl -u elastic:VidFlow_Elasticsearch_2024! -f http://localhost:9200/_cluster/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -u elastic:VidFlow_Elasticsearch_2024! -f http://localhost:9200/_cluster/health || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -529,12 +541,12 @@ services:
       nofile:
         soft: 65536
         hard: 65536
-    
+
     # Dependencies
     depends_on:
       init-permissions:
         condition: service_completed_successfully
-        
+
   kong:
     image: kong:3.8
     container_name: vidflow-kong
@@ -554,6 +566,8 @@ services:
       - KONG_PROXY_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+      - KONG_DNS_VALID_TTL=600
+      - KONG_DNS_STALE_TTL=3600
     ports:
       - "8000:8000"
       - "8443:8443"
@@ -564,10 +578,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '0.75'
+          cpus: "0.75"
         reservations:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
     networks:
       - vidflow-network
     depends_on:
@@ -577,6 +591,7 @@ services:
         condition: service_started
       upload-service:
         condition: service_healthy
+
   optimize-service:
     build:
       context: ./optimize-service
@@ -596,24 +611,24 @@ services:
       - MINIO_BUCKET_NAME=videos
       - MINIO_USE_SSL=false
       # MinIO Signed URL Configuration
-      - SIGNED_URL_DOWNLOAD_EXPIRY=3600  # 1 hour
-      - SIGNED_URL_UPLOAD_EXPIRY=900     # 15 minutes
-      - SIGNED_URL_PROCESS_EXPIRY=14400  # 4 hours
+      - SIGNED_URL_DOWNLOAD_EXPIRY=3600 # 1 hour
+      - SIGNED_URL_UPLOAD_EXPIRY=900 # 15 minutes
+      - SIGNED_URL_PROCESS_EXPIRY=14400 # 4 hours
       # RabbitMQ Configuration
       - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
       - RABBITMQ_QUEUE=video.quality.processing
       # Processing Configuration
       - WORKING_DIR=./video
       - MAX_CONCURRENCY=2
-      - PROCESS_TIMEOUT=3600  # 1 hour
+      - PROCESS_TIMEOUT=3600 # 1 hour
     deploy:
       resources:
         limits:
           memory: 1G
-          cpus: '0.75'
+          cpus: "0.75"
         reservations:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
     networks:
       - vidflow-network
     depends_on:
@@ -631,23 +646,24 @@ services:
     volumes:
       - ./main-service:/app:z
     ports:
-      - "50051:50051"  # gRPC port
+      - "50051:50051" # gRPC port
       - "3000:3000"
     deploy:
       resources:
         limits:
           memory: 1G
-          cpus: '0.75'
+          cpus: "0.75"
         reservations:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://vidflow_user:VidFlow_PostgreSQL_2024!@postgres:5432/vidflow
       - LOG_LEVEL=info
       - JWT_SECRET=VidFlow_JWT_Secret_2025_Super_Secure_Key_For_Development
     networks:
-      - vidflow-network
+      vidflow-network:
+        ipv4_address: 172.20.0.8
     depends_on:
       postgres:
         condition: service_healthy
@@ -693,7 +709,11 @@ services:
       main-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8081/health/live || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:8081/health/live || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -714,11 +734,11 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '0.75'
+          cpus: "0.75"
         reservations:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
 
     networks:
-      - vidflow-network
- 
+      vidflow-network:
+        ipv4_address: 172.20.0.2
