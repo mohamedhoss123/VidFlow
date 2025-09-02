@@ -154,7 +154,7 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 	}
 
 	// API routes
-	api := router.Group("/api/v1")
+	api := router.Group("/api")
 	{
 		// Upload routes
 		upload := api.Group("/upload")

@@ -26,11 +26,7 @@ export default function Header() {
           </li>
         </ul>
         <Avatar className="ms-auto">
-
-          <Image src={userImage}
-            width={60}
-            height={60}
-            alt="@shadcn" />
+          <Image src={userImage} width={60} height={60} alt="@shadcn" />
           <AvatarFallback>CN</AvatarFallback>
         </Avatar>
       </nav>

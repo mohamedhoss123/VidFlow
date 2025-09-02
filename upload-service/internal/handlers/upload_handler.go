@@ -59,7 +59,7 @@ func (h *UploadHandler) UploadVideo(c *gin.Context) {
 	}
 
 	// Get form values
-	userID := c.PostForm("user_id")
+	userID := c.GetHeader("x-user-id")
 	description := c.PostForm("description")
 	name := c.PostForm("name")
 

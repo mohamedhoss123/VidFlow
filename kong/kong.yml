@@ -8,11 +8,27 @@ services:
         paths:
           - /
         strip_path: false
-
+  - name: upload-service
+    url: http://172.20.0.10:8081
+    routes:
+      - name: secure-upload
+        paths:
+          - /api/upload
+        strip_path: false
+        plugins:
+          - name: go-auth
+            config:
+              secret: VidFlow_JWT_Secret_2025_Super_Secure_Key_For_Development
   - name: main-service
     url: http://172.20.0.8:3000
     routes:
       # Protected route
+      - name: public
+        paths:
+          - /api/auth
+          - /api/docs
+          - /api/video/download
+        strip_path: false
       - name: secure
         paths:
           - /api
@@ -21,10 +37,4 @@ services:
           - name: go-auth
             config:
               secret: VidFlow_JWT_Secret_2025_Super_Secure_Key_For_Development
-
       # Public route
-      - name: public
-        paths:
-          - /api/auth
-          - /api/docs
-        strip_path: false
