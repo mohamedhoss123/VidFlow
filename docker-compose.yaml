@@ -679,6 +679,8 @@ services:
       context: ./upload-service
       dockerfile: Dockerfile
     container_name: vidflow-upload-service
+    volumes:
+      - ./upload-service:/app:z
     restart: unless-stopped
     ports:
       - "8081:8081"
@@ -700,7 +702,8 @@ services:
       - GRPC_MAIN_SERVICE_ADDRESS=main-service:50051
       - GRPC_TIMEOUT=30
     networks:
-      - vidflow-network
+      vidflow-network:
+        ipv4_address: 172.20.0.10
     depends_on:
       minio:
         condition: service_healthy
