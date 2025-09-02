@@ -13,7 +13,6 @@ export default function VideoCard({
   length: number; // in seconds,
   id: string;
 }) {
-  length = 500;
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;

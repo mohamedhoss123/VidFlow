@@ -6,7 +6,17 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "../ui/button";
 export default function Header() {
+  const router = useRouter();
+  const logout = () => {
+    // Remove JWT from localStorage or cookies
+    localStorage.removeItem("token"); // if stored in localStorage
+
+    // Redirect to login page
+    router.push("/login");
+  };
   return (
     <header className="flex items-center justify-between border-b border-[#ededed] px-10 py-3">
       {/* Logo */}
@@ -77,7 +87,9 @@ export default function Header() {
               {" "}
               <Link href="/studio">Studio</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-red-500">Block</DropdownMenuItem>
+            <DropdownMenuItem className="text-red-500">
+              <p onClick={logout}>Logout</p>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
