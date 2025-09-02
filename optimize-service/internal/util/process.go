@@ -49,7 +49,7 @@ func Optomize(payload models.CreateVideoPaylodRabbitmq) {
 			Id:       id,
 			Quality:  key,
 			VideoId:  payload.VideoID,
-			ObjectId: payload.ObjectId,
+			ObjectId: "optimized-" + id + ".m3u8",
 		})
 
 	}
