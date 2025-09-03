@@ -7,60 +7,48 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useParams } from "next/navigation";
 import axiosInstance from "~/lib/api";
 import Player from "~/components/root/video-player";
+import Link from "next/link";
 
 const videoQuality = {
-  "1080p": {
-    width: 1920,
-    height: 1080,
-  },
-  "720p": {
-    width: 1280,
-    height: 720,
-  },
-  "480p": {
-    width: 854,
-    height: 480,
-  },
-  "360p": {
-    width: 640,
-    height: 360,
-  },
-  "240p": {
-    width: 426,
-    height: 240,
-  },
-  "144p": {
-    width: 256,
-    height: 144,
-  },
+  "1080p": { width: 1920, height: 1080 },
+  "720p": { width: 1280, height: 720 },
+  "480p": { width: 854, height: 480 },
+  "360p": { width: 640, height: 360 },
+  "240p": { width: 426, height: 240 },
+  "144p": { width: 256, height: 144 },
 };
 
 export default function UserPage() {
   const params = useParams();
-  const videoId = params.id; // if route is /users/[id]
+  const videoId = params.id;
   const [likes, setLikes] = useState(120);
-  const [data, setData] = useState({});
+  const [data, setData] = useState<any>({});
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState<string[]>([]);
+
   function getVideoInfo() {
-    axiosInstance.get(`/api/video/${videoId}`).then((data) => {
-      const out = data.data;
+    axiosInstance.get(`/api/video/${videoId}`).then((res) => {
+      const out = res.data;
       setData(out);
       setLikes(out.likes_count);
     });
   }
+
   function getComment() {
     axiosInstance.get(`/api/video/${videoId}/comment`);
   }
+
   const handleComment = () => {
     if (comment.trim()) {
       setComments([comment, ...comments]);
       setComment("");
     }
   };
+
   useEffect(() => {
     getVideoInfo();
   }, []);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
       {/* Video Player */}
@@ -69,8 +57,37 @@ export default function UserPage() {
           {data.qualities && <Player video={data} />}
         </div>
 
+        {/* Channel Info + Subscribe */}
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-3">
+            <Link href="/channel/link-here">
+              {" "}
+              {/* replace later */}
+              <img
+                src={data.channel_image || "https://placehold.co/40"}
+                alt="channel"
+                className="w-10 h-10 rounded-full cursor-pointer"
+              />
+            </Link>
+            <div>
+              <Link
+                href="/channel/link-here" // replace later
+                className="font-semibold hover:underline"
+              >
+                {data.channel_name || "Channel Name"}
+              </Link>
+              <p className="text-xs text-neutral-500">
+                {data.subscribers || 0} subscribers
+              </p>
+            </div>
+          </div>
+          <Button className="bg-red-600 text-white hover:bg-red-700">
+            Subscribe
+          </Button>
+        </div>
+
         {/* Video Info + Actions */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-4">
           <h1 className="text-xl font-semibold">{data.name}</h1>
           <div className="flex items-center gap-2">
             <Button

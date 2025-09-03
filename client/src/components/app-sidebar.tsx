@@ -11,12 +11,12 @@ export function AppSidebar() {
         </Link>
       </Button>
       <Button asChild variant="ghost" className="justify-start ">
-        <Link href="/studio/video">
+        <Link href="/studio/my-videos">
           <TvMinimalPlay /> My Videos{" "}
         </Link>
       </Button>
       <Button asChild variant="ghost" className="justify-start ">
-        <Link href="/explore">
+        <Link href="/studio/statistics">
           <ChartSpline /> Statistics{" "}
         </Link>
       </Button>
