@@ -38,7 +38,10 @@ export class VideoService {
   getVideoWithQualities(videoId: string) {
     return this.prismaService.video.findUnique({
       where: { id: videoId },
-      include: { qualities: true },
+      include: {
+        qualities: { omit: { video_id: true, created_at: true } },
+        user: { omit: { password: true, email: true } },
+      },
     });
   }
 
