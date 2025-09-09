@@ -53,10 +53,11 @@ func NewUploadHandler(
 // @Param name formData string false "Video name (optional, defaults to filename)"
 // @Param description formData string false "Video description (optional)"
 // @Success 201 {object} models.UploadResponse
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 413 {object} models.ErrorResponse "Request Entity Too Large"
-// @Failure 429 {object} models.ErrorResponse "Too Many Requests"
-// @Failure 500 {object} models.ErrorResponse
+// @Failure 400 {object} docs.BadRequestError "Bad Request - Invalid request parameters"
+// @Failure 401 {object} docs.UnauthorizedError "Unauthorized - Missing x-user-id header"
+// @Failure 413 {object} docs.RequestEntityTooLargeError "Request Entity Too Large - File size exceeds limit"
+// @Failure 429 {object} docs.TooManyRequestsError "Too Many Requests - Rate limit exceeded"
+// @Failure 500 {object} docs.InternalServerError "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /api/upload/video [post]
 func (h *UploadHandler) UploadVideo(c *gin.Context) {
@@ -274,9 +275,9 @@ func getContentTypeFromExtension(ext string) string {
 // @Produce json
 // @Param video_id path string true "Video ID"
 // @Success 200 {object} docs.UploadStatusResponse
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 404 {object} models.ErrorResponse
-// @Failure 500 {object} models.ErrorResponse
+// @Failure 400 {object} docs.BadRequestError "Bad Request - Invalid video ID format"
+// @Failure 404 {object} docs.NotFoundError "Not Found - Video not found"
+// @Failure 500 {object} docs.InternalServerError "Internal Server Error"
 // @Router /api/upload/status/{video_id} [get]
 func (h *UploadHandler) GetUploadStatus(c *gin.Context) {
 	videoID := c.Param("video_id")
@@ -305,7 +306,7 @@ func (h *UploadHandler) GetUploadStatus(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} docs.UploadLimitsResponse
-// @Failure 500 {object} models.ErrorResponse
+// @Failure 500 {object} docs.InternalServerError "Internal Server Error"
 // @Router /api/upload/limits [get]
 func (h *UploadHandler) GetUploadLimits(c *gin.Context) {
 	limits := gin.H{

@@ -48,10 +48,10 @@ func NewThumbnailHandler(
 // @Param thumbnail formData file true "Thumbnail image file to upload"
 // @Param video_id formData string true "Video ID to associate thumbnail with"
 // @Success 201 {object} models.ThumbnailUploadResponse
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 413 {object} models.ErrorResponse "Request Entity Too Large"
-// @Failure 429 {object} models.ErrorResponse "Too Many Requests"
-// @Failure 500 {object} models.ErrorResponse
+// @Failure 400 {object} docs.BadRequestError "Bad Request - Invalid request parameters"
+// @Failure 413 {object} docs.RequestEntityTooLargeError "Request Entity Too Large - File size exceeds limit"
+// @Failure 429 {object} docs.TooManyRequestsError "Too Many Requests - Rate limit exceeded"
+// @Failure 500 {object} docs.InternalServerError "Internal Server Error"
 // @Router /api/upload/thumbnail [post]
 func (h *ThumbnailHandler) UploadThumbnail(c *gin.Context) {
 	startTime := time.Now()
@@ -243,9 +243,9 @@ func getThumbnailContentTypeFromExtension(ext string) string {
 // @Produce json
 // @Param video_id path string true "Video ID"
 // @Success 200 {object} docs.ThumbnailStatusResponse
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 404 {object} models.ErrorResponse
-// @Failure 500 {object} models.ErrorResponse
+// @Failure 400 {object} docs.BadRequestError "Bad Request - Invalid video ID format"
+// @Failure 404 {object} docs.NotFoundError "Not Found - Thumbnail not found"
+// @Failure 500 {object} docs.InternalServerError "Internal Server Error"
 // @Router /api/upload/thumbnail/{video_id} [get]
 func (h *ThumbnailHandler) GetThumbnailStatus(c *gin.Context) {
 	videoID := c.Param("video_id")

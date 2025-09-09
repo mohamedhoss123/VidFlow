@@ -46,7 +46,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.InternalServerError"
                         }
                     }
                 }
@@ -82,21 +82,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Invalid video ID format",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.BadRequestError"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not Found - Video not found",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.NotFoundError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.InternalServerError"
                         }
                     }
                 }
@@ -139,27 +139,27 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Invalid request parameters",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.BadRequestError"
                         }
                     },
                     "413": {
-                        "description": "Request Entity Too Large",
+                        "description": "Request Entity Too Large - File size exceeds limit",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.RequestEntityTooLargeError"
                         }
                     },
                     "429": {
-                        "description": "Too Many Requests",
+                        "description": "Too Many Requests - Rate limit exceeded",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.TooManyRequestsError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.InternalServerError"
                         }
                     }
                 }
@@ -195,21 +195,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Invalid video ID format",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.BadRequestError"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not Found - Thumbnail not found",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.NotFoundError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.InternalServerError"
                         }
                     }
                 }
@@ -269,27 +269,33 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Invalid request parameters",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.BadRequestError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Missing x-user-id header",
+                        "schema": {
+                            "$ref": "#/definitions/docs.UnauthorizedError"
                         }
                     },
                     "413": {
-                        "description": "Request Entity Too Large",
+                        "description": "Request Entity Too Large - File size exceeds limit",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.RequestEntityTooLargeError"
                         }
                     },
                     "429": {
-                        "description": "Too Many Requests",
+                        "description": "Too Many Requests - Rate limit exceeded",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.TooManyRequestsError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                            "$ref": "#/definitions/docs.InternalServerError"
                         }
                     }
                 }
@@ -316,9 +322,9 @@ const docTemplate = `{
                         }
                     },
                     "503": {
-                        "description": "Service Unavailable",
+                        "description": "Service Unavailable - One or more dependencies are unhealthy",
                         "schema": {
-                            "$ref": "#/definitions/upload-service_internal_models.HealthResponse"
+                            "$ref": "#/definitions/docs.ServiceUnavailableError"
                         }
                     }
                 }
@@ -368,9 +374,9 @@ const docTemplate = `{
                         }
                     },
                     "503": {
-                        "description": "Service Unavailable",
+                        "description": "Service Unavailable - Critical dependencies are not ready",
                         "schema": {
-                            "$ref": "#/definitions/docs.ReadinessResponse"
+                            "$ref": "#/definitions/docs.ServiceUnavailableError"
                         }
                     }
                 }
@@ -378,6 +384,40 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "docs.BadRequestError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 400
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Bad Request"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Invalid request parameters or missing required fields"
+                }
+            }
+        },
+        "docs.InternalServerError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 500
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Internal Server Error"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "An unexpected error occurred while processing your request"
+                }
+            }
+        },
         "docs.LivenessResponse": {
             "type": "object",
             "properties": {
@@ -387,6 +427,23 @@ const docTemplate = `{
                 },
                 "timestamp": {
                     "type": "string"
+                }
+            }
+        },
+        "docs.NotFoundError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 404
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Not Found"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Video not found or does not exist"
                 }
             }
         },
@@ -405,6 +462,40 @@ const docTemplate = `{
                 },
                 "timestamp": {
                     "type": "string"
+                }
+            }
+        },
+        "docs.RequestEntityTooLargeError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 413
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Request Entity Too Large"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "File size exceeds maximum allowed limit of 500MB"
+                }
+            }
+        },
+        "docs.ServiceUnavailableError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 503
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Service Unavailable"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Service is temporarily unavailable. Please try again later"
                 }
             }
         },
@@ -429,6 +520,40 @@ const docTemplate = `{
                 "video_id": {
                     "type": "string",
                     "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        },
+        "docs.TooManyRequestsError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 429
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Too Many Requests"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Rate limit exceeded. Please try again later"
+                }
+            }
+        },
+        "docs.UnauthorizedError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 401
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Unauthorized"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Missing or invalid x-user-id header"
                 }
             }
         },
@@ -465,23 +590,6 @@ const docTemplate = `{
                 "video_id": {
                     "type": "string",
                     "example": "123e4567-e89b-12d3-a456-426614174000"
-                }
-            }
-        },
-        "upload-service_internal_models.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 400
-                },
-                "error": {
-                    "type": "string",
-                    "example": "Invalid file"
-                },
-                "message": {
-                    "type": "string",
-                    "example": "File validation failed"
                 }
             }
         },
@@ -571,6 +679,8 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "Upload service for VidFlow video platform. Handles video and thumbnail uploads to MinIO storage with gRPC communication to main service and RabbitMQ for async processing.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
 }
 
 func init() {

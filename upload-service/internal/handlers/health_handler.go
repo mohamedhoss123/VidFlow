@@ -41,7 +41,7 @@ func NewHealthHandler(
 // @Accept json
 // @Produce json
 // @Success 200 {object} models.HealthResponse
-// @Failure 503 {object} models.HealthResponse "Service Unavailable"
+// @Failure 503 {object} docs.ServiceUnavailableError "Service Unavailable - One or more dependencies are unhealthy"
 // @Router /health [get]
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
@@ -111,7 +111,7 @@ func (h *HealthHandler) LivenessProbe(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} docs.ReadinessResponse
-// @Failure 503 {object} docs.ReadinessResponse "Service Unavailable"
+// @Failure 503 {object} docs.ServiceUnavailableError "Service Unavailable - Critical dependencies are not ready"
 // @Router /health/ready [get]
 func (h *HealthHandler) ReadinessProbe(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
