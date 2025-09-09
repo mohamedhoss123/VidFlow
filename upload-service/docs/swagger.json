@@ -1,0 +1,560 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Upload service for VidFlow video platform. Handles video and thumbnail uploads to MinIO storage with gRPC communication to main service and RabbitMQ for async processing.",
+        "title": "VidFlow Upload Service API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "VidFlow API Support",
+            "email": "support@vidflow.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0.0"
+    },
+    "host": "localhost:8081",
+    "basePath": "/",
+    "paths": {
+        "/api/upload/limits": {
+            "get": {
+                "description": "Get the maximum file size and allowed file types for video uploads",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Upload"
+                ],
+                "summary": "Get upload limits",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/docs.UploadLimitsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/upload/status/{video_id}": {
+            "get": {
+                "description": "Get the current status of a video upload by video ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Upload"
+                ],
+                "summary": "Get upload status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Video ID",
+                        "name": "video_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/docs.UploadStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/upload/thumbnail": {
+            "post": {
+                "description": "Upload a thumbnail image for a video to MinIO storage",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Thumbnail"
+                ],
+                "summary": "Upload a thumbnail image",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Thumbnail image file to upload",
+                        "name": "thumbnail",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Video ID to associate thumbnail with",
+                        "name": "video_id",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ThumbnailUploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/upload/thumbnail/{video_id}": {
+            "get": {
+                "description": "Get the current status and information of a video's thumbnail",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Thumbnail"
+                ],
+                "summary": "Get thumbnail status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Video ID",
+                        "name": "video_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/docs.ThumbnailStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/upload/video": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Upload a video file to MinIO storage and create video record via gRPC",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Upload"
+                ],
+                "summary": "Upload a video file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID for authentication",
+                        "name": "x-user-id",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Video file to upload",
+                        "name": "video",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Video name (optional, defaults to filename)",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Video description (optional)",
+                        "name": "description",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.UploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Performs health checks on all dependent services (MinIO, gRPC, RabbitMQ)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Comprehensive health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.HealthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/upload-service_internal_models.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health/live": {
+            "get": {
+                "description": "Simple liveness check to verify the service is alive",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Liveness probe",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/docs.LivenessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health/ready": {
+            "get": {
+                "description": "Checks if the service is ready to accept requests by verifying critical dependencies",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Readiness probe",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/docs.ReadinessResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/docs.ReadinessResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "docs.LivenessResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "alive"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "docs.ReadinessResponse": {
+            "type": "object",
+            "properties": {
+                "ready": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "services": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "boolean"
+                    }
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "docs.ThumbnailStatusResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Thumbnail uploaded successfully"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "uploaded"
+                },
+                "thumbnail_id": {
+                    "type": "string",
+                    "example": "thumb_123e4567-e89b-12d3-a456-426614174000"
+                },
+                "video_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        },
+        "docs.UploadLimitsResponse": {
+            "type": "object",
+            "properties": {
+                "allowed_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "max_file_size": {
+                    "type": "integer",
+                    "example": 1073741824
+                },
+                "max_file_size_mb": {
+                    "type": "integer",
+                    "example": 1024
+                }
+            }
+        },
+        "docs.UploadStatusResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Video is being processed"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "processing"
+                },
+                "video_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        },
+        "upload-service_internal_models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 400
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Invalid file"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "File validation failed"
+                }
+            }
+        },
+        "upload-service_internal_models.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "services": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "string",
+                    "example": "healthy"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2024-01-01T12:00:00Z"
+                }
+            }
+        },
+        "upload-service_internal_models.ThumbnailUploadResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-01-01T12:00:00Z"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Thumbnail uploaded successfully"
+                },
+                "object_id": {
+                    "type": "string",
+                    "example": "thumbnails/123e4567-e89b-12d3-a456-426614174000.jpg"
+                },
+                "video_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        },
+        "upload-service_internal_models.UploadResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-01-01T12:00:00Z"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Video uploaded successfully and processing started"
+                },
+                "object_id": {
+                    "type": "string",
+                    "example": "videos/123e4567-e89b-12d3-a456-426614174000.mp4"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "processing"
+                },
+                "video_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "description": "User ID for authentication",
+            "type": "apiKey",
+            "name": "x-user-id",
+            "in": "header"
+        }
+    }
+}
