@@ -1,11 +1,47 @@
 basePath: /
 definitions:
+  docs.BadRequestError:
+    properties:
+      code:
+        example: 400
+        type: integer
+      error:
+        example: Bad Request
+        type: string
+      message:
+        example: Invalid request parameters or missing required fields
+        type: string
+    type: object
+  docs.InternalServerError:
+    properties:
+      code:
+        example: 500
+        type: integer
+      error:
+        example: Internal Server Error
+        type: string
+      message:
+        example: An unexpected error occurred while processing your request
+        type: string
+    type: object
   docs.LivenessResponse:
     properties:
       status:
         example: alive
         type: string
       timestamp:
+        type: string
+    type: object
+  docs.NotFoundError:
+    properties:
+      code:
+        example: 404
+        type: integer
+      error:
+        example: Not Found
+        type: string
+      message:
+        example: Video not found or does not exist
         type: string
     type: object
   docs.ReadinessResponse:
@@ -18,6 +54,30 @@ definitions:
           type: boolean
         type: object
       timestamp:
+        type: string
+    type: object
+  docs.RequestEntityTooLargeError:
+    properties:
+      code:
+        example: 413
+        type: integer
+      error:
+        example: Request Entity Too Large
+        type: string
+      message:
+        example: File size exceeds maximum allowed limit of 500MB
+        type: string
+    type: object
+  docs.ServiceUnavailableError:
+    properties:
+      code:
+        example: 503
+        type: integer
+      error:
+        example: Service Unavailable
+        type: string
+      message:
+        example: Service is temporarily unavailable. Please try again later
         type: string
     type: object
   docs.ThumbnailStatusResponse:
@@ -35,6 +95,30 @@ definitions:
         type: string
       video_id:
         example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
+  docs.TooManyRequestsError:
+    properties:
+      code:
+        example: 429
+        type: integer
+      error:
+        example: Too Many Requests
+        type: string
+      message:
+        example: Rate limit exceeded. Please try again later
+        type: string
+    type: object
+  docs.UnauthorizedError:
+    properties:
+      code:
+        example: 401
+        type: integer
+      error:
+        example: Unauthorized
+        type: string
+      message:
+        example: Missing or invalid x-user-id header
         type: string
     type: object
   docs.UploadLimitsResponse:
@@ -60,18 +144,6 @@ definitions:
         type: string
       video_id:
         example: 123e4567-e89b-12d3-a456-426614174000
-        type: string
-    type: object
-  upload-service_internal_models.ErrorResponse:
-    properties:
-      code:
-        example: 400
-        type: integer
-      error:
-        example: Invalid file
-        type: string
-      message:
-        example: File validation failed
         type: string
     type: object
   upload-service_internal_models.HealthResponse:
@@ -150,7 +222,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.InternalServerError'
       summary: Get upload limits
       tags:
       - Upload
@@ -173,17 +245,17 @@ paths:
           schema:
             $ref: '#/definitions/docs.UploadStatusResponse'
         "400":
-          description: Bad Request
+          description: Bad Request - Invalid video ID format
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.BadRequestError'
         "404":
-          description: Not Found
+          description: Not Found - Video not found
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.NotFoundError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.InternalServerError'
       summary: Get upload status
       tags:
       - Upload
@@ -211,21 +283,21 @@ paths:
           schema:
             $ref: '#/definitions/upload-service_internal_models.ThumbnailUploadResponse'
         "400":
-          description: Bad Request
+          description: Bad Request - Invalid request parameters
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.BadRequestError'
         "413":
-          description: Request Entity Too Large
+          description: Request Entity Too Large - File size exceeds limit
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.RequestEntityTooLargeError'
         "429":
-          description: Too Many Requests
+          description: Too Many Requests - Rate limit exceeded
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.TooManyRequestsError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.InternalServerError'
       summary: Upload a thumbnail image
       tags:
       - Thumbnail
@@ -248,17 +320,17 @@ paths:
           schema:
             $ref: '#/definitions/docs.ThumbnailStatusResponse'
         "400":
-          description: Bad Request
+          description: Bad Request - Invalid video ID format
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.BadRequestError'
         "404":
-          description: Not Found
+          description: Not Found - Thumbnail not found
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.NotFoundError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.InternalServerError'
       summary: Get thumbnail status
       tags:
       - Thumbnail
@@ -295,21 +367,25 @@ paths:
           schema:
             $ref: '#/definitions/upload-service_internal_models.UploadResponse'
         "400":
-          description: Bad Request
+          description: Bad Request - Invalid request parameters
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.BadRequestError'
+        "401":
+          description: Unauthorized - Missing x-user-id header
+          schema:
+            $ref: '#/definitions/docs.UnauthorizedError'
         "413":
-          description: Request Entity Too Large
+          description: Request Entity Too Large - File size exceeds limit
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.RequestEntityTooLargeError'
         "429":
-          description: Too Many Requests
+          description: Too Many Requests - Rate limit exceeded
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.TooManyRequestsError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/upload-service_internal_models.ErrorResponse'
+            $ref: '#/definitions/docs.InternalServerError'
       security:
       - ApiKeyAuth: []
       summary: Upload a video file
@@ -329,9 +405,9 @@ paths:
           schema:
             $ref: '#/definitions/upload-service_internal_models.HealthResponse'
         "503":
-          description: Service Unavailable
+          description: Service Unavailable - One or more dependencies are unhealthy
           schema:
-            $ref: '#/definitions/upload-service_internal_models.HealthResponse'
+            $ref: '#/definitions/docs.ServiceUnavailableError'
       summary: Comprehensive health check
       tags:
       - Health
@@ -364,9 +440,9 @@ paths:
           schema:
             $ref: '#/definitions/docs.ReadinessResponse'
         "503":
-          description: Service Unavailable
+          description: Service Unavailable - Critical dependencies are not ready
           schema:
-            $ref: '#/definitions/docs.ReadinessResponse'
+            $ref: '#/definitions/docs.ServiceUnavailableError'
       summary: Readiness probe
       tags:
       - Health
