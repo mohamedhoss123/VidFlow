@@ -43,6 +43,22 @@ func NewUploadHandler(
 }
 
 // UploadVideo handles video upload requests
+// @Summary Upload a video file
+// @Description Upload a video file to MinIO storage and create video record via gRPC
+// @Tags Upload
+// @Accept multipart/form-data
+// @Produce json
+// @Param x-user-id header string true "User ID for authentication"
+// @Param video formData file true "Video file to upload"
+// @Param name formData string false "Video name (optional, defaults to filename)"
+// @Param description formData string false "Video description (optional)"
+// @Success 201 {object} models.UploadResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 413 {object} models.ErrorResponse "Request Entity Too Large"
+// @Failure 429 {object} models.ErrorResponse "Too Many Requests"
+// @Failure 500 {object} models.ErrorResponse
+// @Security ApiKeyAuth
+// @Router /api/upload/video [post]
 func (h *UploadHandler) UploadVideo(c *gin.Context) {
 	startTime := time.Now()
 
@@ -251,6 +267,17 @@ func getContentTypeFromExtension(ext string) string {
 }
 
 // GetUploadStatus returns the status of an upload
+// @Summary Get upload status
+// @Description Get the current status of a video upload by video ID
+// @Tags Upload
+// @Accept json
+// @Produce json
+// @Param video_id path string true "Video ID"
+// @Success 200 {object} docs.UploadStatusResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /api/upload/status/{video_id} [get]
 func (h *UploadHandler) GetUploadStatus(c *gin.Context) {
 	videoID := c.Param("video_id")
 	if videoID == "" {
@@ -272,6 +299,14 @@ func (h *UploadHandler) GetUploadStatus(c *gin.Context) {
 }
 
 // GetUploadLimits returns the upload limits and allowed file types
+// @Summary Get upload limits
+// @Description Get the maximum file size and allowed file types for video uploads
+// @Tags Upload
+// @Accept json
+// @Produce json
+// @Success 200 {object} docs.UploadLimitsResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /api/upload/limits [get]
 func (h *UploadHandler) GetUploadLimits(c *gin.Context) {
 	limits := gin.H{
 		"max_file_size":    h.config.Upload.MaxFileSize,
