@@ -210,11 +210,14 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 		c.File("./docs/swagger.yaml")
 	})
 
-	// Swagger documentation routes (wildcard route must come after specific routes)
-	docs := router.Group("/docs")
-	{
-		docs.GET("/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	}
+	// Swagger documentation routes
+	// Redirect /docs to /docs/index.html for better UX
+	router.GET("/docs", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/docs/index.html")
+	})
+
+	// Swagger UI wildcard handler for all /docs/* paths
+	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Root route
 	// @Summary Service information
