@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Share2 } from "lucide-react";
 import { Card, CardContent } from "~/components/ui/card";
 import Link from "next/link";
 import {
@@ -21,6 +21,12 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Label } from "~/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 type Video = {
   id: number;
@@ -87,12 +93,35 @@ export default function PlaylistDetailPage() {
         <aside className="w-1/4 bg-white rounded-lg shadow-sm p-6 h-fit">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">{playlist.title}</h2>
-            <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline">
-                  Edit
+
+            {/* 3 Dots Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-5 w-5" />
                 </Button>
-              </DialogTrigger>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => alert("Share playlist")}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-red-600"
+                  onClick={() => alert("Delete playlist")}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Hidden Edit Dialog */}
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Edit Playlist</DialogTitle>
@@ -150,6 +179,7 @@ export default function PlaylistDetailPage() {
               </DialogContent>
             </Dialog>
           </div>
+
           <p className="text-sm text-gray-600 mb-4">{playlist.description}</p>
           <p className="text-xs text-gray-500 mb-2">
             Created at: {new Date(playlist.createdAt).toLocaleDateString()}
