@@ -35,6 +35,14 @@ func NewHealthHandler(
 }
 
 // HealthCheck performs a comprehensive health check
+// @Summary Comprehensive health check
+// @Description Performs health checks on all dependent services (MinIO, gRPC, RabbitMQ)
+// @Tags Health
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.HealthResponse
+// @Failure 503 {object} docs.ServiceUnavailableError "Service Unavailable - One or more dependencies are unhealthy"
+// @Router /health [get]
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
@@ -82,6 +90,13 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 }
 
 // LivenessProbe is a simple liveness check for Kubernetes
+// @Summary Liveness probe
+// @Description Simple liveness check to verify the service is alive
+// @Tags Health
+// @Accept json
+// @Produce json
+// @Success 200 {object} docs.LivenessResponse
+// @Router /health/live [get]
 func (h *HealthHandler) LivenessProbe(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":    "alive",
@@ -90,6 +105,14 @@ func (h *HealthHandler) LivenessProbe(c *gin.Context) {
 }
 
 // ReadinessProbe checks if the service is ready to accept requests
+// @Summary Readiness probe
+// @Description Checks if the service is ready to accept requests by verifying critical dependencies
+// @Tags Health
+// @Accept json
+// @Produce json
+// @Success 200 {object} docs.ReadinessResponse
+// @Failure 503 {object} docs.ServiceUnavailableError "Service Unavailable - Critical dependencies are not ready"
+// @Router /health/ready [get]
 func (h *HealthHandler) ReadinessProbe(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()

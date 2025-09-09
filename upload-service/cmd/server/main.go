@@ -1,3 +1,18 @@
+// @title VidFlow Upload Service API
+// @version 1.0.0
+// @description Upload service for VidFlow video platform. Handles video and thumbnail uploads to MinIO storage with gRPC communication to main service and RabbitMQ for async processing.
+// @termsOfService http://swagger.io/terms/
+// @contact.name VidFlow API Support
+// @contact.email support@vidflow.com
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+// @host localhost:8081
+// @BasePath /
+// @schemes http https
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name x-user-id
+// @description User ID for authentication
 package main
 
 import (
@@ -15,6 +30,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "upload-service/docs" // Import generated docs
 )
 
 func main() {
@@ -170,7 +189,44 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 		}
 	}
 
+	// Swagger YAML endpoints (must be defined before wildcard routes)
+	router.GET("/swagger.yaml", func(c *gin.Context) {
+		c.Header("Content-Type", "application/x-yaml")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.File("./docs/swagger.yaml")
+	})
+
+	// Swagger JSON endpoint
+	router.GET("/swagger.json", func(c *gin.Context) {
+		c.Header("Content-Type", "application/json")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.File("./docs/swagger.json")
+	})
+
+	// Alternative endpoint for docs integration
+	router.GET("/api/docs-yaml", func(c *gin.Context) {
+		c.Header("Content-Type", "application/x-yaml")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.File("./docs/swagger.yaml")
+	})
+
+	// Swagger documentation routes
+	// Redirect /docs to /docs/index.html for better UX
+	router.GET("/docs", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/docs/index.html")
+	})
+
+	// Swagger UI wildcard handler for all /docs/* paths
+	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Root route
+	// @Summary Service information
+	// @Description Get basic information about the VidFlow Upload Service
+	// @Tags Service
+	// @Accept json
+	// @Produce json
+	// @Success 200 {object} docs.ServiceInfoResponse
+	// @Router / [get]
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"service":   "VidFlow Upload Service",
@@ -179,11 +235,14 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 			"timestamp": time.Now(),
 			"endpoints": gin.H{
 				"health":           "/health",
-				"upload_video":     "/api/v1/upload/video",
-				"upload_status":    "/api/v1/upload/status/:video_id",
-				"upload_limits":    "/api/v1/upload/limits",
-				"upload_thumbnail": "/api/v1/upload/thumbnail",
-				"thumbnail_status": "/api/v1/upload/thumbnail/:video_id",
+				"upload_video":     "/api/upload/video",
+				"upload_status":    "/api/upload/status/:video_id",
+				"upload_limits":    "/api/upload/limits",
+				"upload_thumbnail": "/api/upload/thumbnail",
+				"thumbnail_status": "/api/upload/thumbnail/:video_id",
+				"swagger_ui":       "/docs",
+				"swagger_json":     "/swagger.json",
+				"swagger_yaml":     "/swagger.yaml",
 			},
 		})
 	})

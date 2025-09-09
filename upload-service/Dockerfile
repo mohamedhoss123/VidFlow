@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine
+FROM golang:1.25-alpine
 
 # Install Air for hot reloading
 RUN go install github.com/air-verse/air@latest

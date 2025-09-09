@@ -3,11 +3,13 @@
 # Array of URLs
 urls=(
   "http://localhost:3000/api/docs-yaml"
+  "http://localhost:8081/api/docs-yaml"
 )
 
 # Matching names for each URL
 names=(
   "main-service.yaml"
+  "upload-service.yaml"
 )
 
 # Create docs folder if it doesn't exist

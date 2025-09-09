@@ -18,10 +18,10 @@ import (
 
 // ThumbnailHandler handles thumbnail upload requests
 type ThumbnailHandler struct {
-	minioService    *services.MinIOService
-	grpcService     *services.GRPCService
-	config          *config.Config
-	logger          *logrus.Logger
+	minioService *services.MinIOService
+	grpcService  *services.GRPCService
+	config       *config.Config
+	logger       *logrus.Logger
 }
 
 // NewThumbnailHandler creates a new thumbnail handler
@@ -40,6 +40,19 @@ func NewThumbnailHandler(
 }
 
 // UploadThumbnail handles thumbnail upload requests
+// @Summary Upload a thumbnail image
+// @Description Upload a thumbnail image for a video to MinIO storage
+// @Tags Thumbnail
+// @Accept multipart/form-data
+// @Produce json
+// @Param thumbnail formData file true "Thumbnail image file to upload"
+// @Param video_id formData string true "Video ID to associate thumbnail with"
+// @Success 201 {object} models.ThumbnailUploadResponse
+// @Failure 400 {object} docs.BadRequestError "Bad Request - Invalid request parameters"
+// @Failure 413 {object} docs.RequestEntityTooLargeError "Request Entity Too Large - File size exceeds limit"
+// @Failure 429 {object} docs.TooManyRequestsError "Too Many Requests - Rate limit exceeded"
+// @Failure 500 {object} docs.InternalServerError "Internal Server Error"
+// @Router /api/upload/thumbnail [post]
 func (h *ThumbnailHandler) UploadThumbnail(c *gin.Context) {
 	startTime := time.Now()
 
@@ -223,6 +236,17 @@ func getThumbnailContentTypeFromExtension(ext string) string {
 }
 
 // GetThumbnailStatus returns the status of a thumbnail
+// @Summary Get thumbnail status
+// @Description Get the current status and information of a video's thumbnail
+// @Tags Thumbnail
+// @Accept json
+// @Produce json
+// @Param video_id path string true "Video ID"
+// @Success 200 {object} docs.ThumbnailStatusResponse
+// @Failure 400 {object} docs.BadRequestError "Bad Request - Invalid video ID format"
+// @Failure 404 {object} docs.NotFoundError "Not Found - Thumbnail not found"
+// @Failure 500 {object} docs.InternalServerError "Internal Server Error"
+// @Router /api/upload/thumbnail/{video_id} [get]
 func (h *ThumbnailHandler) GetThumbnailStatus(c *gin.Context) {
 	videoID := c.Param("video_id")
 	if videoID == "" {

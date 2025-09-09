@@ -2,7 +2,12 @@
   "inputs": [
     {
       "inputFile": "./files/main-service.yaml",
-
+      "operationSelection": {
+        "excludeTags": ["excluded"]
+      }
+    },
+    {
+      "inputFile": "./files/upload-service.yaml",
       "operationSelection": {
         "excludeTags": ["excluded"]
       }
