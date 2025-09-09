@@ -196,6 +196,13 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 		c.File("./docs/swagger.yaml")
 	})
 
+	// Swagger JSON endpoint
+	router.GET("/swagger.json", func(c *gin.Context) {
+		c.Header("Content-Type", "application/json")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.File("./docs/swagger.json")
+	})
+
 	// Alternative endpoint for docs integration
 	router.GET("/api/docs-yaml", func(c *gin.Context) {
 		c.Header("Content-Type", "application/x-yaml")
@@ -231,7 +238,7 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 				"upload_thumbnail": "/api/upload/thumbnail",
 				"thumbnail_status": "/api/upload/thumbnail/:video_id",
 				"swagger_ui":       "/docs",
-				"swagger_json":     "/docs/swagger.json",
+				"swagger_json":     "/swagger.json",
 				"swagger_yaml":     "/swagger.yaml",
 			},
 		})
