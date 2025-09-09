@@ -189,14 +189,8 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 		}
 	}
 
-	// Swagger documentation routes
-	docs := router.Group("/docs")
-	{
-		docs.GET("/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	}
-
-	// Swagger YAML endpoint for project integration
-	router.GET("/docs/swagger.yaml", func(c *gin.Context) {
+	// Swagger YAML endpoints (must be defined before wildcard routes)
+	router.GET("/swagger.yaml", func(c *gin.Context) {
 		c.Header("Content-Type", "application/x-yaml")
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.File("./docs/swagger.yaml")
@@ -208,6 +202,12 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.File("./docs/swagger.yaml")
 	})
+
+	// Swagger documentation routes (wildcard route must come after specific routes)
+	docs := router.Group("/docs")
+	{
+		docs.GET("/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 
 	// Root route
 	// @Summary Service information
@@ -232,7 +232,7 @@ func setupRouter(cfg *config.Config, logger *logrus.Logger, uploadHandler *handl
 				"thumbnail_status": "/api/upload/thumbnail/:video_id",
 				"swagger_ui":       "/docs",
 				"swagger_json":     "/docs/swagger.json",
-				"swagger_yaml":     "/docs/swagger.yaml",
+				"swagger_yaml":     "/swagger.yaml",
 			},
 		})
 	})
