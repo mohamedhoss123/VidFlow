@@ -9,6 +9,32 @@ paths:
           description: ''
       tags:
         - App
+  /api/video:
+    get:
+      operationId: VideoController_getVideos
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          description: Number of items per page
+          schema:
+            minimum: 1
+            example: 10
+            type: number
+        - name: cursor
+          required: false
+          in: query
+          description: Cursor for pagination
+          schema:
+            example: vid123
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - access-token: []
+      tags:
+        - Video
   /api/video/{id}:
     get:
       operationId: VideoController_getVideo
@@ -30,6 +56,22 @@ paths:
       security:
         - access-token: []
       summary: Get video details and qualities if user has permission
+      tags:
+        - Video
+  /api/video/download/{key}:
+    get:
+      operationId: VideoController_download
+      parameters:
+        - name: key
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - access-token: []
       tags:
         - Video
   /api/video/{videoId}/like:
@@ -139,6 +181,64 @@ paths:
           description: ''
       tags:
         - Auth
+  /api/users/me/subscription:
+    get:
+      operationId: SubscriptionController_getMySubs
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      security:
+        - access-token: []
+      tags:
+        - Subscription
+  /api/users/{userId}/subscription:
+    get:
+      operationId: SubscriptionController_getUserSubs
+      parameters:
+        - name: userId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - access-token: []
+      tags:
+        - Subscription
+  /api/users/{userId}/subscribe:
+    post:
+      operationId: SubscriptionController_newSubscription
+      parameters:
+        - name: userId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      security:
+        - access-token: []
+      tags:
+        - Subscription
+    delete:
+      operationId: SubscriptionController_unSubscripe
+      parameters:
+        - name: userId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      security:
+        - access-token: []
+      tags:
+        - Subscription
 info:
   title: Videflow
   description: The Vidflow API description
