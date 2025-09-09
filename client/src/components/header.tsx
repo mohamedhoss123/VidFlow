@@ -83,8 +83,9 @@ export default function Header() {
             />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-48">
-            <DropdownMenuItem>View Profile</DropdownMenuItem>
-            <DropdownMenuItem>Send Message</DropdownMenuItem>
+            <DropdownMenuItem>
+              <Link href="/profile">View Profile</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>
               {" "}
               <Link href="/studio">Studio</Link>
