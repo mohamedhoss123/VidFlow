@@ -22,6 +22,47 @@
         ]
       }
     },
+    "/api/video": {
+      "get": {
+        "operationId": "VideoController_getVideos",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor for pagination",
+            "schema": {
+              "example": "vid123",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "Video"
+        ]
+      }
+    },
     "/api/video/{id}": {
       "get": {
         "operationId": "VideoController_getVideo",
@@ -56,6 +97,34 @@
           }
         ],
         "summary": "Get video details and qualities if user has permission",
+        "tags": [
+          "Video"
+        ]
+      }
+    },
+    "/api/video/download/{key}": {
+      "get": {
+        "operationId": "VideoController_download",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "tags": [
           "Video"
         ]
@@ -238,6 +307,466 @@
         },
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/api/users/me/subscription": {
+      "get": {
+        "operationId": "SubscriptionController_getMySubs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "Subscription"
+        ]
+      }
+    },
+    "/api/users/{userId}/subscription": {
+      "get": {
+        "operationId": "SubscriptionController_getUserSubs",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "Subscription"
+        ]
+      }
+    },
+    "/api/users/{userId}/subscribe": {
+      "post": {
+        "operationId": "SubscriptionController_newSubscription",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "Subscription"
+        ]
+      },
+      "delete": {
+        "operationId": "SubscriptionController_unSubscripe",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "Subscription"
+        ]
+      }
+    },
+    "/api/upload/limits": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "description": "Get the maximum file size and allowed file types for video uploads",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/docs.UploadLimitsResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/docs.InternalServerError"
+            }
+          }
+        },
+        "summary": "Get upload limits",
+        "tags": [
+          "Upload"
+        ]
+      }
+    },
+    "/api/upload/status/{video_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "description": "Get the current status of a video upload by video ID",
+        "parameters": [
+          {
+            "description": "Video ID",
+            "in": "path",
+            "name": "video_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/docs.UploadStatusResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid video ID format",
+            "schema": {
+              "$ref": "#/definitions/docs.BadRequestError"
+            }
+          },
+          "404": {
+            "description": "Not Found - Video not found",
+            "schema": {
+              "$ref": "#/definitions/docs.NotFoundError"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/docs.InternalServerError"
+            }
+          }
+        },
+        "summary": "Get upload status",
+        "tags": [
+          "Upload"
+        ]
+      }
+    },
+    "/api/upload/thumbnail": {
+      "post": {
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "description": "Upload a thumbnail image for a video to MinIO storage",
+        "parameters": [
+          {
+            "description": "Thumbnail image file to upload",
+            "in": "formData",
+            "name": "thumbnail",
+            "required": true,
+            "type": "file"
+          },
+          {
+            "description": "Video ID to associate thumbnail with",
+            "in": "formData",
+            "name": "video_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/upload-service_internal_models.ThumbnailUploadResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request parameters",
+            "schema": {
+              "$ref": "#/definitions/docs.BadRequestError"
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large - File size exceeds limit",
+            "schema": {
+              "$ref": "#/definitions/docs.RequestEntityTooLargeError"
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "schema": {
+              "$ref": "#/definitions/docs.TooManyRequestsError"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/docs.InternalServerError"
+            }
+          }
+        },
+        "summary": "Upload a thumbnail image",
+        "tags": [
+          "Thumbnail"
+        ]
+      }
+    },
+    "/api/upload/thumbnail/{video_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "description": "Get the current status and information of a video's thumbnail",
+        "parameters": [
+          {
+            "description": "Video ID",
+            "in": "path",
+            "name": "video_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/docs.ThumbnailStatusResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid video ID format",
+            "schema": {
+              "$ref": "#/definitions/docs.BadRequestError"
+            }
+          },
+          "404": {
+            "description": "Not Found - Thumbnail not found",
+            "schema": {
+              "$ref": "#/definitions/docs.NotFoundError"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/docs.InternalServerError"
+            }
+          }
+        },
+        "summary": "Get thumbnail status",
+        "tags": [
+          "Thumbnail"
+        ]
+      }
+    },
+    "/api/upload/video": {
+      "post": {
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "description": "Upload a video file to MinIO storage and create video record via gRPC",
+        "parameters": [
+          {
+            "description": "User ID for authentication",
+            "in": "header",
+            "name": "x-user-id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "Video file to upload",
+            "in": "formData",
+            "name": "video",
+            "required": true,
+            "type": "file"
+          },
+          {
+            "description": "Video name (optional, defaults to filename)",
+            "in": "formData",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "description": "Video description (optional)",
+            "in": "formData",
+            "name": "description",
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/upload-service_internal_models.UploadResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request parameters",
+            "schema": {
+              "$ref": "#/definitions/docs.BadRequestError"
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing x-user-id header",
+            "schema": {
+              "$ref": "#/definitions/docs.UnauthorizedError"
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large - File size exceeds limit",
+            "schema": {
+              "$ref": "#/definitions/docs.RequestEntityTooLargeError"
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "schema": {
+              "$ref": "#/definitions/docs.TooManyRequestsError"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/docs.InternalServerError"
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Upload a video file",
+        "tags": [
+          "Upload"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "description": "Performs health checks on all dependent services (MinIO, gRPC, RabbitMQ)",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/upload-service_internal_models.HealthResponse"
+            }
+          },
+          "503": {
+            "description": "Service Unavailable - One or more dependencies are unhealthy",
+            "schema": {
+              "$ref": "#/definitions/docs.ServiceUnavailableError"
+            }
+          }
+        },
+        "summary": "Comprehensive health check",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "description": "Simple liveness check to verify the service is alive",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/docs.LivenessResponse"
+            }
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "description": "Checks if the service is ready to accept requests by verifying critical dependencies",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/docs.ReadinessResponse"
+            }
+          },
+          "503": {
+            "description": "Service Unavailable - Critical dependencies are not ready",
+            "schema": {
+              "$ref": "#/definitions/docs.ServiceUnavailableError"
+            }
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "Health"
         ]
       }
     }
