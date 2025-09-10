@@ -682,8 +682,7 @@ services:
     volumes:
       - ./upload-service:/app:z
     restart: unless-stopped
-    ports:
-      - "8081:8081"
+
     environment:
       - LOG_LEVEL=info
       # Server Configuration
@@ -731,8 +730,6 @@ services:
     volumes:
       - ./client:/app:z
       # - /app/node_modules
-    ports:
-      - "3001:3001"
     deploy:
       resources:
         limits:
@@ -745,3 +742,15 @@ services:
     networks:
       vidflow-network:
         ipv4_address: 172.20.0.2
+
+  docs:
+    build:
+      context: ./docs
+      dockerfile: Dockerfile
+    container_name: vidflow-docs
+    restart: unless-stopped
+    volumes:
+      - ./docs:/app:z
+    networks:
+      vidflow-network:
+        ipv4_address: 172.20.0.12
