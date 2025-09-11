@@ -39,29 +39,12 @@ export default function PlaylistsPage() {
     },
   ]);
 
-  const [contextMenu, setContextMenu] = useState<{
-    visible: boolean;
-    x: number;
-    y: number;
-    playlistId: number | null;
-  }>({ visible: false, x: 0, y: 0, playlistId: null });
-
   const handleContextMenu = (e: React.MouseEvent, playlistId: number) => {
     e.preventDefault();
-    setContextMenu({
-      visible: true,
-      x: e.pageX,
-      y: e.pageY,
-      playlistId,
-    });
-  };
-
-  const handleCloseMenu = () => {
-    setContextMenu({ visible: false, x: 0, y: 0, playlistId: null });
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6" onClick={handleCloseMenu}>
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-semibold mb-6">My Playlists</h1>
 
@@ -94,43 +77,11 @@ export default function PlaylistsPage() {
                     handleContextMenu(e, playlist.id);
                   }}
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white rounded-full p-1 shadow-sm"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
+                ></button>
               </CardContent>
             </Card>
           ))}
         </div>
-
-        {/* Context Menu */}
-        {contextMenu.visible && (
-          <div
-            style={{
-              top: contextMenu.y,
-              left: contextMenu.x,
-            }}
-            className="absolute bg-white border rounded-md shadow-lg z-50 w-40"
-          >
-            <button
-              className="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-100 text-sm"
-              onClick={() => {
-                router.push(`/studio/playlists/edit/${contextMenu.playlistId}`);
-                handleCloseMenu();
-              }}
-            >
-              <Edit className="w-4 h-4" /> Edit
-            </button>
-            <button
-              className="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-100 text-sm text-red-600"
-              onClick={() => {
-                alert(`Delete playlist ${contextMenu.playlistId}`);
-                handleCloseMenu();
-              }}
-            >
-              <Trash className="w-4 h-4" /> Delete
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
