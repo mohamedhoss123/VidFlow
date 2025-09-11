@@ -8,6 +8,7 @@ import { ThumbsUp, ThumbsDown, Plus } from "lucide-react";
 import { useParams } from "next/navigation";
 import axiosInstance from "~/lib/api";
 import Player from "~/components/root/video-player";
+import InfiniteScroll from "react-infinite-scroll-component";
 import Link from "next/link";
 import {
   Dialog,
@@ -39,6 +40,14 @@ interface Playlist {
   title: string;
   visibility: "public" | "private" | "unlisted";
   selected: boolean;
+}
+
+interface Comment {
+  user: {
+    name: string;
+  };
+  icon: string;
+  content: string;
 }
 
 interface NewPlaylist {
@@ -113,8 +122,8 @@ export default function UserPage() {
   const [likes, setLikes] = useState(120);
   const [data, setData] = useState<any>({});
   const [comment, setComment] = useState("");
-  const [comments, setComments] = useState<string[]>([]);
-
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [nextComment, setNextComment] = useState(null);
   function getVideoInfo() {
     axiosInstance.get(`/api/video/${videoId}`).then((res) => {
       const out = res.data;
@@ -122,19 +131,29 @@ export default function UserPage() {
       setLikes(out.likes_count);
     });
   }
-
-  function getComment() {
-    axiosInstance.get(`/api/video/${videoId}/comment`);
+  function getCommenst() {
+    axiosInstance
+      .get(`/api/video/${videoId}/comment`, { params: { cursor: nextComment } })
+      .then((res) => {
+        const out = res.data;
+        setComments((old) => [...old, ...out.comments]);
+        setNextComment(out.nextCursor);
+      });
   }
 
   const handleComment = () => {
     if (comment.trim()) {
-      setComments([comment, ...comments]);
+      axiosInstance
+        .post(`/api/video/${videoId}/comment`, { content: comment })
+        .then((res) => {
+          setComments([res.data, ...comments]);
+        });
       setComment("");
     }
   };
 
   useEffect(() => {
+    getCommenst();
     getVideoInfo();
   }, []);
 
@@ -322,15 +341,33 @@ export default function UserPage() {
               <Button onClick={handleComment}>Post</Button>
             </div>
             <div className="space-y-2">
-              {comments.length > 0 ? (
-                comments.map((c, i) => (
-                  <div key={i} className="p-2 bg-neutral-100 rounded-md">
-                    {c}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-neutral-500">No comments yet.</p>
-              )}
+              <InfiniteScroll
+                dataLength={comments.length} //This is important field to render the next data
+                next={getCommenst}
+                hasMore={nextComment ? true : false}
+                loader={<h4>Loading...</h4>}
+              >
+                {comments.length > 0 ? (
+                  comments.map((c, i) => (
+                    <div
+                      key={i}
+                      className="p-2 bg-neutral-100 rounded-md flex space-x-2 mt-5"
+                    >
+                      <img
+                        src={c.icon || "https://placehold.co/400x40"}
+                        alt={c.user.name}
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{c.user.name}</p>
+                        <p className="text-sm text-neutral-700">{c.content}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-neutral-500">No comments yet.</p>
+                )}
+              </InfiniteScroll>
             </div>
           </CardContent>
         </Card>
