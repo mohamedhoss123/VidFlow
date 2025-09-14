@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ForbiddenException, HttpException, Injectable } from "@nestjs/common";
 import { CreateVideoDto } from "../dto/create-video.dto";
 import { UpdateVideoDto } from "../dto/update-video.dto";
 import { CreateVideoRequest, VideoReadyRequest } from "src/common/proto/video";
@@ -35,14 +35,27 @@ export class VideoService {
     };
   }
 
-  getVideoWithQualities(videoId: string) {
-    return this.prismaService.video.findUnique({
+  async getVideoWithQualities(videoId: string, userId: string) {
+    const data = await this.prismaService.video.findUnique({
       where: { id: videoId },
       include: {
         qualities: { omit: { video_id: true, created_at: true } },
         user: { omit: { password: true, email: true } },
       },
     });
+
+    if (data?.user) {
+      const isSubscribed =
+        (await this.prismaService.subscription.count({
+          where: {
+            following_id: data.user.id,
+            follower_id: userId,
+          },
+        })) > 0;
+      console.log(isSubscribed);
+      return { ...data, isSubscribed };
+    }
+    throw new HttpException("the video creator not found", 400);
   }
 
   async makeVideoReady(videoReadyRequest: VideoReadyRequest) {
@@ -74,12 +87,13 @@ export class VideoService {
         : undefined,
       where: { visibility: VideoVisibility.public, status: VideoStatus.READY },
       orderBy: {
-        created_at: "desc",
+        id: "desc",
       },
       include: {
         user: {
           select: {
             name: true,
+            id: true,
           },
         },
       },
