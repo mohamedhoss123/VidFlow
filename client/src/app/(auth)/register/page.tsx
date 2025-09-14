@@ -1,56 +1,71 @@
-  "use client";
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
-import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
-import { AuthProviderButtons } from '../layout'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
-import Link from 'next/link'
-import axiosInstance from '~/lib/api';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { AuthProviderButtons } from "../layout";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/components/ui/form";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
+import axiosInstance from "~/lib/api";
 
 export const formSchema = z
   .object({
     name: z
       .string()
-      .min(1, { message: 'Name is required.' })
-      .min(2, { message: 'Name must be at least 2 characters.' }),
+      .min(1, { message: "Name is required." })
+      .min(2, { message: "Name must be at least 2 characters." }),
 
     email: z
-      .email({ message: 'Please enter a valid email address.' })
-      .min(1, { message: 'Email is required.' }),
+      .email({ message: "Please enter a valid email address." })
+      .min(1, { message: "Email is required." }),
 
     password: z
       .string()
-      .min(1, { message: 'Password is required.' })
-      .min(8, { message: 'Password must be at least 8 characters long.' }),
+      .min(1, { message: "Password is required." })
+      .min(8, { message: "Password must be at least 8 characters long." }),
 
     confirmPassword: z
       .string()
-      .min(1, { message: 'Please confirm your password.' }),
+      .min(1, { message: "Please confirm your password." }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    path: ['confirmPassword'],
-    message: 'Passwords do not match.',
+    path: ["confirmPassword"],
+    message: "Passwords do not match.",
   });
 
 export default function Register() {
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
     },
-  })
+  });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const data = await axiosInstance.post("api/auth/register", values)
-    console.log(data)
+    const data = await axiosInstance.post("api/auth/register", values);
+    router.push("/login");
   }
 
   return (
@@ -65,12 +80,14 @@ export default function Register() {
             <div className="grid gap-6">
               <AuthProviderButtons />
               <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-border after:border-t">
-                <span className="relative z-10 bg-card px-2 text-muted-foreground">Or sign up with email</span>
+                <span className="relative z-10 bg-card px-2 text-muted-foreground">
+                  Or sign up with email
+                </span>
               </div>
               <div className="grid gap-6">
                 <div className="grid gap-3">
                   <FormField
-                    control={form.control} 
+                    control={form.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
@@ -78,7 +95,12 @@ export default function Register() {
                           Name
                         </FormLabel>
                         <FormControl>
-                          <Input id="name" placeholder="Your full name" required {...field} />
+                          <Input
+                            id="name"
+                            placeholder="Your full name"
+                            required
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage className="me-auto" />
                       </FormItem>
@@ -95,7 +117,13 @@ export default function Register() {
                           Email
                         </FormLabel>
                         <FormControl>
-                          <Input id="email" type="email" placeholder="name@example.com" required {...field} />
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="name@example.com"
+                            required
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage className="me-auto" />
                       </FormItem>
@@ -112,7 +140,13 @@ export default function Register() {
                           Password
                         </FormLabel>
                         <FormControl>
-                          <Input id="password" type="password" placeholder="••••••••" required {...field} />
+                          <Input
+                            id="password"
+                            type="password"
+                            placeholder="••••••••"
+                            required
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage className="me-auto" />
                       </FormItem>
@@ -125,11 +159,20 @@ export default function Register() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel htmlFor="confirmPassword" className="me-auto">
+                        <FormLabel
+                          htmlFor="confirmPassword"
+                          className="me-auto"
+                        >
                           Confirm Password
                         </FormLabel>
                         <FormControl>
-                          <Input id="confirmPassword" type="password" placeholder="••••••••" required {...field} />
+                          <Input
+                            id="confirmPassword"
+                            type="password"
+                            placeholder="••••••••"
+                            required
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage className="me-auto" />
                       </FormItem>
@@ -141,7 +184,7 @@ export default function Register() {
                 </Button>
               </div>
               <div className="text-center text-sm">
-                Already have an account?{' '}
+                Already have an account?{" "}
                 <Link href="/login" className="underline underline-offset-4">
                   Log in
                 </Link>
@@ -151,5 +194,5 @@ export default function Register() {
         </Form>
       </CardContent>
     </Card>
-  )
+  );
 }

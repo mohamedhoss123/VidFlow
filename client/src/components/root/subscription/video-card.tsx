@@ -1,26 +1,29 @@
+"use client";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 export default function VideoCard({
   thumbnail = "",
-  name,
-  user,
+  video_name,
+  username,
   length,
-  id,
+  video_id,
+  user_id,
 }: {
   thumbnail: string;
-  name: string;
-  user: { name: string; id: string };
+  video_name: string;
+  username: string;
   length: number; // in seconds,
-  id: string;
+  video_id: string;
+  user_id: string;
 }) {
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
-
   return (
-    <Link href={`/watch/${id}`}>
+    <Link href={`/watch/${video_id}`}>
       <div className="flex flex-col gap-3 pb-3 w-[500px]">
         <div
           className="relative w-full aspect-video bg-center bg-cover rounded-lg"
@@ -35,13 +38,13 @@ export default function VideoCard({
         </div>
         <div className="flex items-center gap-3">
           <img
-            src={`https://api.dicebear.com/9.x/initials/svg?seed=${user.name}`} // replace with your video thumbnail or channel image
-            alt={name}
+            src={`https://api.dicebear.com/9.x/initials/svg?seed=${username}`} // replace with your video thumbnail or channel image
+            alt={video_name}
             className="w-10 h-10 rounded-md object-cover z-10"
           />
           <div className="flex flex-col">
-            <p className="text-base font-medium text-[#141414]">{name}</p>
-            <p className="text-sm text-neutral-500">{user.name}</p>
+            <p className="text-base font-medium text-[#141414]">{video_name}</p>
+            <p className="text-sm text-neutral-500">{username}</p>
           </div>
         </div>
       </div>

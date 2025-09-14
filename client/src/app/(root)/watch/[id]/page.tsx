@@ -27,14 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-const videoQuality = {
-  "1080p": { width: 1920, height: 1080 },
-  "720p": { width: 1280, height: 720 },
-  "480p": { width: 854, height: 480 },
-  "360p": { width: 640, height: 360 },
-  "240p": { width: 426, height: 240 },
-  "144p": { width: 256, height: 144 },
-};
+
 interface Playlist {
   id: string;
   title: string;
@@ -124,11 +117,27 @@ export default function UserPage() {
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [nextComment, setNextComment] = useState(null);
+  const [subscribed, setSubscribed] = useState(false);
+
+  const toggleSubscribe = () => {
+    if (!subscribed) {
+      axiosInstance.post(`/api/users/${data.user.id}/subscribe`).then((res) => {
+        setSubscribed(true);
+      });
+    } else {
+      axiosInstance
+        .delete(`/api/users/${data.user.id}/subscribe`)
+        .then((res) => {
+          setSubscribed(false);
+        });
+    }
+  };
   function getVideoInfo() {
     axiosInstance.get(`/api/video/${videoId}`).then((res) => {
       const out = res.data;
       setData(out);
       setLikes(out.likes_count);
+      setSubscribed(out.isSubscribed);
     });
   }
   function getCommenst() {
@@ -172,7 +181,10 @@ export default function UserPage() {
               {" "}
               {/* replace later */}
               <img
-                src={data.channel_image || "https://placehold.co/40"}
+                src={
+                  data.channel_image ||
+                  `https://api.dicebear.com/9.x/initials/svg?seed=${data?.user?.name}`
+                }
                 alt="channel"
                 className="w-10 h-10 rounded-full cursor-pointer"
               />
@@ -182,15 +194,22 @@ export default function UserPage() {
                 href="/channel/link-here" // replace later
                 className="font-semibold hover:underline"
               >
-                {data.channel_name || "Channel Name"}
+                {data.user?.name || "Channel Name"}
               </Link>
               <p className="text-xs text-neutral-500">
                 {data.subscribers || 0} subscribers
               </p>
             </div>
           </div>
-          <Button className="bg-red-600 text-white hover:bg-red-700">
-            Subscribe
+          <Button
+            onClick={toggleSubscribe}
+            className={
+              subscribed
+                ? "bg-gray-600 text-white hover:bg-gray-700"
+                : "bg-red-600 text-white hover:bg-red-700"
+            }
+          >
+            {subscribed ? "Unsubscribe" : "Subscribe"}
           </Button>
         </div>
 
@@ -354,7 +373,10 @@ export default function UserPage() {
                       className="p-2 bg-neutral-100 rounded-md flex space-x-2 mt-5"
                     >
                       <img
-                        src={c.icon || "https://placehold.co/400x40"}
+                        src={
+                          c.icon ||
+                          `https://api.dicebear.com/9.x/initials/svg?seed=${c.user.name}`
+                        }
                         alt={c.user.name}
                         className="w-6 h-6 rounded-full"
                       />
