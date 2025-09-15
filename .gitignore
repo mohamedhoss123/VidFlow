@@ -53,3 +53,5 @@ obj/
 # OS files
 .DS_Store
 Thumbs.db
+
+main-service/.pnpm-store

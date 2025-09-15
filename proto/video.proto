@@ -1,30 +1,35 @@
 syntax = "proto3";
 
 package video;
-
 option go_package = "proto/video";
-message VideoResponse {
-
+message CreateVideoResponse {
+    string video_id = 1;
+}
+message VideoReadyResponse {
 }
 message CreateVideoRequest {
 	string url = 1;
 	string user_id = 2;
+    
     string description = 3;
 }
 
 message VideoQuality{
-    string quality = 1;
-    string video_id = 2;
-    string source = 3;
+    string id = 1;
+    string quality = 2;
+    string video_id = 3;
+    string object_id = 4;
+    
 }
 
 
 message VideoReadyRequest {
 	string video_id = 1;
-    repeated VideoQuality quality = 2;
+    int32 length = 2;
+    repeated VideoQuality quality = 3;
 }
 
 service VideoService {
-	rpc CreateVideo (CreateVideoRequest) returns (VideoResponse) {}
-    rpc MakeVideoReady (VideoReadyRequest) returns (VideoResponse) {}
+	rpc CreateVideo (CreateVideoRequest) returns (CreateVideoResponse) {}
+    rpc MakeVideoReady (VideoReadyRequest) returns (VideoReadyResponse) {}
 }

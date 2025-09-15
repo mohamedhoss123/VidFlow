@@ -4,17 +4,22 @@ import Link from "next/link";
 
 export function AppSidebar() {
   return (
-    <aside className="flex flex-col w-60 gap-3 h-screen text-start p-4">
+    <aside className="flex flex-col w-60 gap-2 h-screen text-start p-4">
       <Button asChild variant="ghost" className="justify-start ">
-      
-        <Link href="/upload"><Upload /> Upload </Link>
+        <Link href="/studio/upload">
+          <Upload /> Upload{" "}
+        </Link>
       </Button>
       <Button asChild variant="ghost" className="justify-start ">
-        <Link href="/video"><TvMinimalPlay /> My Videos </Link>
+        <Link href="/studio/my-videos">
+          <TvMinimalPlay /> My Videos{" "}
+        </Link>
       </Button>
       <Button asChild variant="ghost" className="justify-start ">
-        <Link href="/explore"><ChartSpline /> Statistics </Link>
+        <Link href="/studio/statistics">
+          <ChartSpline /> Statistics{" "}
+        </Link>
       </Button>
     </aside>
-  )
+  );
 }

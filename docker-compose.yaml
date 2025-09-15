@@ -48,20 +48,20 @@ services:
     container_name: vidflow-init-permissions
     restart: "no"
     volumes:
-      - postgres-data:/postgres-data
-      - rabbitmq-data:/rabbitmq-data
-      - rabbitmq-logs:/rabbitmq-logs
-      - minio-data:/minio-data
-      - elasticsearch-data:/elasticsearch-data
-      - elasticsearch-logs:/elasticsearch-logs
+      - postgres-data:/postgres-data:z
+      - rabbitmq-data:/rabbitmq-data:z
+      - rabbitmq-logs:/rabbitmq-logs:z
+      - minio-data:/minio-data:z
+      - elasticsearch-data:/elasticsearch-data:z
+      - elasticsearch-logs:/elasticsearch-logs:z
     command: |
       sh -c "
         echo 'Setting up volume permissions...'
-        
+
         # PostgreSQL data directory
         chown -R 999:999 /postgres-data
         chmod -R 755 /postgres-data
-        
+
         # RabbitMQ data and logs (Alpine uses UID 100:101 instead of 999:999)
         chown -R 100:101 /rabbitmq-data /rabbitmq-logs
         chmod -R 755 /rabbitmq-data /rabbitmq-logs
@@ -71,15 +71,15 @@ services:
         echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /rabbitmq-data/.erlang.cookie
         chown 100:101 /rabbitmq-data/.erlang.cookie
         chmod 600 /rabbitmq-data/.erlang.cookie
-        
+
         # MinIO data directory
         chown -R 1001:1001 /minio-data
         chmod -R 755 /minio-data
-        
+
         # Elasticsearch data and logs
         chown -R 1000:1000 /elasticsearch-data /elasticsearch-logs
         chmod -R 755 /elasticsearch-data /elasticsearch-logs
-        
+
         echo 'Volume permissions setup completed successfully!'
       "
 
@@ -90,7 +90,7 @@ services:
     restart: unless-stopped
 
     # Security: Run as non-root user
-    user: "999:999"  # postgres user
+    user: "999:999" # postgres user
 
     # Security: Read-only root filesystem with writable tmp
     read_only: true
@@ -103,10 +103,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
         reservations:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
 
     # Security: Capability restrictions
     cap_drop:
@@ -134,14 +134,14 @@ services:
       # Security: Connection limits
       POSTGRES_MAX_CONNECTIONS: 100
 
-    # Remove secrets for Windows compatibility  
+    # Remove secrets for Windows compatibility
     # secrets:
     #   - postgres-password
 
     # Volumes
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - postgres-data:/var/lib/postgresql/data:z
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro,z
 
     # Network
     networks:
@@ -175,10 +175,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
         reservations:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
 
     # Security: Capability restrictions
     cap_drop:
@@ -195,40 +195,31 @@ services:
     security_opt:
       - no-new-privileges:true
 
-    # Environment variables (deprecated variables removed, using config file instead)
+    # Environment variables
     environment:
-      # Only keep essential environment variables
+      # RabbitMQ configuration
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq.conf
       # Erlang cookie for cluster authentication
       RABBITMQ_ERLANG_COOKIE: VIDFLOW_RABBITMQ_COOKIE_2025
-
-    # Secrets (removed since we're using config file)
-    # secrets:
-    #   - rabbitmq-password
+      # Default user configuration (fallback)
+      RABBITMQ_DEFAULT_USER: vidflow_admin
+      RABBITMQ_DEFAULT_PASS: VidFlow_RabbitMQ_2025!
+      RABBITMQ_DEFAULT_VHOST: vidflow
 
     # Ports - Only expose necessary ports
     ports:
-      - "5672:5672"   # AMQP port
+      - "5672:5672" # AMQP port
       - "15672:15672" # Management UI port
 
     # Volumes
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
       - rabbitmq-logs:/var/log/rabbitmq
-      - ./rabbitmq/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro,z
+      - ./rabbitmq/init/init-rabbitmq.sh:/usr/local/bin/init-rabbitmq.sh:ro,z
 
-    # Custom command to ensure proper Erlang cookie setup
-    command: >
-      bash -c "
-        # Ensure cookie file exists with correct permissions
-        if [ ! -f /var/lib/rabbitmq/.erlang.cookie ]; then
-          echo 'VIDFLOW_RABBITMQ_COOKIE_2025' > /var/lib/rabbitmq/.erlang.cookie
-          chmod 600 /var/lib/rabbitmq/.erlang.cookie
-          chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
-        fi
-        # Start RabbitMQ normally
-        docker-entrypoint.sh rabbitmq-server
-      "
+    # Use custom initialization script
+    command: ["/usr/local/bin/init-rabbitmq.sh"]
 
     # Network
     networks:
@@ -263,7 +254,7 @@ services:
     restart: unless-stopped
 
     # Security: Run as non-root user
-    user: "1001:1001"  # minio user
+    user: "1001:1001" # minio user
 
     # Security: Tmpfs for temporary files (removed read_only as MinIO needs write access to /data)
     tmpfs:
@@ -274,10 +265,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
         reservations:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
 
     # Security: Capability restrictions
     cap_drop:
@@ -318,8 +309,8 @@ services:
 
     # Ports
     ports:
-      - "9000:9000"   # MinIO API
-      - "9001:9001"   # MinIO Console
+      - "9000:9000" # MinIO API
+      - "9001:9001" # MinIO Console
 
     # Volumes
     volumes:
@@ -331,7 +322,11 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:9000/minio/health/live || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -346,7 +341,7 @@ services:
 
     # Command
     command: server /data --console-address ":9001"
-    
+
     # Dependencies
     depends_on:
       init-permissions:
@@ -359,7 +354,7 @@ services:
     restart: unless-stopped
 
     # Security: Run as non-root user
-    user: "1001:1001"  # mailpit user
+    user: "1001:1001" # mailpit user
 
     # Security: Read-only root filesystem with writable areas
     read_only: true
@@ -372,10 +367,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
 
     # Security: Capability restrictions
     cap_drop:
@@ -390,9 +385,9 @@ services:
     # Environment variables
     environment:
       # Security: Authentication (optional)
-      MP_UI_AUTH_FILE: ""  # Set to enable basic auth
-      MP_UI_TLS_CERT: ""   # Set for HTTPS
-      MP_UI_TLS_KEY: ""    # Set for HTTPS
+      MP_UI_AUTH_FILE: "" # Set to enable basic auth
+      MP_UI_TLS_CERT: "" # Set for HTTPS
+      MP_UI_TLS_KEY: "" # Set for HTTPS
 
       # Configuration
       MP_SMTP_AUTH_ACCEPT_ANY: "1"
@@ -409,8 +404,8 @@ services:
 
     # Ports
     ports:
-      - "1025:1025"   # SMTP port
-      - "8025:8025"   # Web UI port
+      - "1025:1025" # SMTP port
+      - "8025:8025" # Web UI port
 
     # Network
     networks:
@@ -418,7 +413,11 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8025/api/v1/info || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:8025/api/v1/info || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -438,17 +437,17 @@ services:
     restart: unless-stopped
 
     # Security: Run as non-root user
-    user: "1000:1000"  # elasticsearch user
+    user: "1000:1000" # elasticsearch user
 
     # Security: Resource limits
     deploy:
       resources:
         limits:
           memory: 2G
-          cpus: '2.0'
+          cpus: "2.0"
         reservations:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
 
     # Security: Capability restrictions
     cap_drop:
@@ -503,8 +502,8 @@ services:
 
     # Ports
     ports:
-      - "9200:9200"   # HTTP API
-      - "9300:9300"   # Transport
+      - "9200:9200" # HTTP API
+      - "9300:9300" # Transport
 
     # Volumes
     volumes:
@@ -517,7 +516,11 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -u elastic:VidFlow_Elasticsearch_2024! -f http://localhost:9200/_cluster/health || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -538,19 +541,19 @@ services:
       nofile:
         soft: 65536
         hard: 65536
-    
+
     # Dependencies
     depends_on:
       init-permissions:
         condition: service_completed_successfully
-        
+
   kong:
     image: kong:3.8
     container_name: vidflow-kong
     restart: unless-stopped
     volumes:
-      - ./kong/go-auth:/usr/local/bin/go-auth
-      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+      - ./kong/go-auth:/usr/local/bin/go-auth:z
+      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml:z
     environment:
       - KONG_DATABASE=off
       - KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
@@ -563,12 +566,22 @@ services:
       - KONG_PROXY_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+      - KONG_DNS_VALID_TTL=600
+      - KONG_DNS_STALE_TTL=3600
     ports:
       - "8000:8000"
       - "8443:8443"
       - "8002:8002"
       - "127.0.0.1:8001:8001"
       - "127.0.0.1:8444:8444"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.75"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
     networks:
       - vidflow-network
     depends_on:
@@ -576,6 +589,9 @@ services:
         condition: service_healthy
       optimize-service:
         condition: service_started
+      upload-service:
+        condition: service_healthy
+
   optimize-service:
     build:
       context: ./optimize-service
@@ -583,7 +599,7 @@ services:
     container_name: vidflow-optimize-service
     restart: unless-stopped
     volumes:
-      - ./optimize-service:/app
+      - ./optimize-service:/app:z
     ports:
       - "8080:8080"
     environment:
@@ -595,20 +611,30 @@ services:
       - MINIO_BUCKET_NAME=videos
       - MINIO_USE_SSL=false
       # MinIO Signed URL Configuration
-      - SIGNED_URL_DOWNLOAD_EXPIRY=3600  # 1 hour
-      - SIGNED_URL_UPLOAD_EXPIRY=900     # 15 minutes
-      - SIGNED_URL_PROCESS_EXPIRY=14400  # 4 hours
+      - SIGNED_URL_DOWNLOAD_EXPIRY=3600 # 1 hour
+      - SIGNED_URL_UPLOAD_EXPIRY=900 # 15 minutes
+      - SIGNED_URL_PROCESS_EXPIRY=14400 # 4 hours
       # RabbitMQ Configuration
       - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
       - RABBITMQ_QUEUE=video.quality.processing
       # Processing Configuration
       - WORKING_DIR=./video
       - MAX_CONCURRENCY=2
-      - PROCESS_TIMEOUT=3600  # 1 hour
+      - PROCESS_TIMEOUT=3600 # 1 hour
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.75"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
     networks:
       - vidflow-network
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   main-service:
@@ -618,16 +644,26 @@ services:
     container_name: vidflow-main-service
     restart: unless-stopped
     volumes:
-      - ./main-service:/app
+      - ./main-service:/app:z
     ports:
-      - "50051:50051"  # gRPC port
+      - "50051:50051" # gRPC port
       - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.75"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://vidflow_user:VidFlow_PostgreSQL_2024!@postgres:5432/vidflow
       - LOG_LEVEL=info
+      - JWT_SECRET=VidFlow_JWT_Secret_2025_Super_Secure_Key_For_Development
     networks:
-      - vidflow-network
+      vidflow-network:
+        ipv4_address: 172.20.0.8
     depends_on:
       postgres:
         condition: service_healthy
@@ -637,6 +673,54 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  upload-service:
+    build:
+      context: ./upload-service
+      dockerfile: Dockerfile
+    container_name: vidflow-upload-service
+    volumes:
+      - ./upload-service:/app:z
+    restart: unless-stopped
+
+    environment:
+      - LOG_LEVEL=info
+      # Server Configuration
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8081
+      # MinIO Configuration
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=vidflow_admin
+      - MINIO_SECRET_KEY=VidFlow_MinIO_2024!
+      - MINIO_BUCKET_NAME=videos
+      - MINIO_USE_SSL=false
+      # RabbitMQ Configuration
+      - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
+      - RABBITMQ_QUEUE=video.quality.processing
+      # gRPC Configuration
+      - GRPC_MAIN_SERVICE_ADDRESS=main-service:50051
+      - GRPC_TIMEOUT=30
+    networks:
+      vidflow-network:
+        ipv4_address: 172.20.0.10
+    depends_on:
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      main-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:8081/health/live || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   client:
     build:
       context: ./client
@@ -644,57 +728,29 @@ services:
     container_name: vidflow-client
     restart: unless-stopped
     volumes:
-      - ./client:/app
-    ports:
-      - "3001:3001"
+      - ./client:/app:z
+      # - /app/node_modules
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.75"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
 
     networks:
-      - vidflow-network
- 
+      vidflow-network:
+        ipv4_address: 172.20.0.2
 
-
-  upload-service:
+  docs:
     build:
-      context: ./upload-service
+      context: ./docs
       dockerfile: Dockerfile
-    container_name: vidflow-upload-service
+    container_name: vidflow-docs
     restart: unless-stopped
-    ports:
-      - "8081:8081"
-    environment:
-      - HTTP_PORT=8081
-      - GRPC_MAIN_SERVICE_ADDR=main-service:50051
-      - MAX_FILE_SIZE=524288000  # 500MB
-      - ALLOWED_FILE_TYPES=video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm,video/mkv,application/octet-stream
-      - UPLOAD_DIR=/tmp/uploads
-      - LOG_LEVEL=info
-    # MinIO Configuration
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=vidflow_admin
-      - MINIO_SECRET_KEY=VidFlow_MinIO_2024!
-      - MINIO_BUCKET_NAME=videos
-      - MINIO_USE_SSL=false
-      # MinIO Signed URL Configuration
-      - SIGNED_URL_DOWNLOAD_EXPIRY=3600  # 1 hour
-      - SIGNED_URL_UPLOAD_EXPIRY=900     # 15 minutes
-      - SIGNED_URL_PROCESS_EXPIRY=14400  # 4 hours
-      # RabbitMQ Configuration
-      - RABBITMQ_URL=amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow
-      - RABBITMQ_QUEUE=video.quality.processing
-
+    volumes:
+      - ./docs:/app:z
     networks:
-      - vidflow-network
-    depends_on:
-      main-service:
-        condition: service_started
-      minio:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-      
+      vidflow-network:
+        ipv4_address: 172.20.0.12

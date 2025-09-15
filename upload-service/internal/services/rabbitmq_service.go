@@ -5,27 +5,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"vidflow/upload-service/internal/config"
-	"vidflow/upload-service/internal/models"
+	"upload-service/internal/config"
+	"upload-service/internal/models"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
 )
 
-// RabbitMQService handles RabbitMQ message publishing operations
+// RabbitMQService handles RabbitMQ operations
 type RabbitMQService struct {
 	connection *amqp.Connection
 	channel    *amqp.Channel
 	queueName  string
 	logger     *logrus.Logger
-	url        string
 }
 
 // NewRabbitMQService creates a new RabbitMQ service instance
 func NewRabbitMQService(cfg *config.Config, logger *logrus.Logger) (*RabbitMQService, error) {
-	// Connect to RabbitMQ
-	conn, err := amqp.Dial(cfg.RabbitMQURL)
+	// Connect to RabbitMQ with retry logic
+	conn, err := connectWithRetry(cfg.RabbitMQ.URL, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
 	}
@@ -40,162 +38,58 @@ func NewRabbitMQService(cfg *config.Config, logger *logrus.Logger) (*RabbitMQSer
 	service := &RabbitMQService{
 		connection: conn,
 		channel:    ch,
-		queueName:  cfg.RabbitMQQueue,
+		queueName:  cfg.RabbitMQ.Queue,
 		logger:     logger,
-		url:        cfg.RabbitMQURL,
 	}
 
-	// Ensure queue exists
-	if err := service.ensureQueueExists(); err != nil {
+	// Declare queue
+	if err := service.declareQueue(); err != nil {
 		service.Close()
-		return nil, fmt.Errorf("failed to ensure queue exists: %w", err)
+		return nil, fmt.Errorf("failed to declare queue: %w", err)
 	}
 
 	logger.WithFields(logrus.Fields{
-		"queue": cfg.RabbitMQQueue,
-		"url":   maskPassword(cfg.RabbitMQURL),
+		"queue": cfg.RabbitMQ.Queue,
+		"url":   maskPassword(cfg.RabbitMQ.URL),
 	}).Info("RabbitMQ service initialized successfully")
 
 	return service, nil
 }
 
-// ensureQueueExists declares the queue if it doesn't exist
-func (r *RabbitMQService) ensureQueueExists() error {
-	_, err := r.channel.QueueDeclare(
-		r.queueName, // name
-		true,        // durable - make queue persistent
-		false,       // delete when unused
-		false,       // exclusive
-		false,       // no-wait
-		nil,         // arguments
-	)
-	if err != nil {
-		return fmt.Errorf("failed to declare queue: %w", err)
+// connectWithRetry attempts to connect to RabbitMQ with exponential backoff
+func connectWithRetry(url string, logger *logrus.Logger) (*amqp.Connection, error) {
+	maxRetries := 10
+	baseDelay := time.Second
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		conn, err := amqp.Dial(url)
+		if err == nil {
+			logger.Info("Successfully connected to RabbitMQ")
+			return conn, nil
+		}
+
+		if attempt == maxRetries {
+			return nil, fmt.Errorf("failed to connect after %d attempts: %w", maxRetries, err)
+		}
+
+		delay := time.Duration(attempt) * baseDelay
+		logger.WithFields(logrus.Fields{
+			"attempt": attempt,
+			"max":     maxRetries,
+			"delay":   delay,
+			"error":   err.Error(),
+		}).Warn("Failed to connect to RabbitMQ, retrying...")
+		
+		time.Sleep(delay)
 	}
 
-	r.logger.WithField("queue", r.queueName).Info("RabbitMQ queue declared")
-	return nil
+	return nil, fmt.Errorf("unreachable code")
 }
 
-// PublishVideoProcessingMessage publishes a video processing message to the queue
-func (r *RabbitMQService) PublishVideoProcessingMessage(ctx context.Context, videoURL string) error {
-	// Set timeout for publish operation
-	publishCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	r.logger.WithFields(logrus.Fields{
-		"video_url": videoURL,
-		"queue":     r.queueName,
-	}).Info("Publishing video processing message to RabbitMQ")
-
-	// Publish message
-	err := r.channel.PublishWithContext(
-		publishCtx,
-		"",          // exchange (using default)
-		r.queueName, // routing key (queue name)
-		false,       // mandatory
-		false,       // immediate
-		amqp.Publishing{
-			ContentType:  "text/plain",
-			Body:         []byte(videoURL),
-			DeliveryMode: amqp.Persistent, // make message persistent
-			Timestamp:    time.Now(),
-			MessageId:    fmt.Sprintf("video-processing-%d", time.Now().UnixNano()),
-		},
-	)
-	if err != nil {
-		r.logger.WithError(err).WithFields(logrus.Fields{
-			"video_url": videoURL,
-			"queue":     r.queueName,
-		}).Error("Failed to publish message to RabbitMQ")
-		return fmt.Errorf("failed to publish message to RabbitMQ: %w", err)
-	}
-
-	r.logger.WithFields(logrus.Fields{
-		"video_url": videoURL,
-		"queue":     r.queueName,
-	}).Info("Video processing message published to RabbitMQ successfully")
-
-	return nil
-}
-
-// PublishVideoProcessingMessageV2 publishes an enhanced video processing message with signed URL and metadata
-func (r *RabbitMQService) PublishVideoProcessingMessageV2(ctx context.Context, message *models.VideoProcessingMessage) error {
-	// Set timeout for publish operation
-	publishCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	r.logger.WithFields(logrus.Fields{
-		"video_id":    message.VideoID,
-		"signed_url":  message.SignedURL,
-		"object_name": message.ObjectName,
-		"expires_at":  message.ExpiresAt,
-		"queue":       r.queueName,
-	}).Info("Publishing enhanced video processing message to RabbitMQ")
-
-	// Marshal message to JSON
-	messageBody, err := json.Marshal(message)
-	if err != nil {
-		r.logger.WithError(err).Error("Failed to marshal video processing message")
-		return fmt.Errorf("failed to marshal message: %w", err)
-	}
-
-	// Publish message
-	err = r.channel.PublishWithContext(
-		publishCtx,
-		"",          // exchange (using default)
-		r.queueName, // routing key (queue name)
-		false,       // mandatory
-		false,       // immediate
-		amqp.Publishing{
-			ContentType:  "application/json",
-			Body:         messageBody,
-			DeliveryMode: amqp.Persistent, // make message persistent
-			Timestamp:    time.Now(),
-			MessageId:    fmt.Sprintf("video-processing-v2-%s-%d", message.VideoID, time.Now().UnixNano()),
-			Headers: amqp.Table{
-				"message_version": "v2",
-				"video_id":        message.VideoID,
-				"expires_at":      message.ExpiresAt.Unix(),
-			},
-		},
-	)
-	if err != nil {
-		r.logger.WithError(err).WithFields(logrus.Fields{
-			"video_id":    message.VideoID,
-			"signed_url":  message.SignedURL,
-			"object_name": message.ObjectName,
-			"queue":       r.queueName,
-		}).Error("Failed to publish enhanced message to RabbitMQ")
-		return fmt.Errorf("failed to publish enhanced message to RabbitMQ: %w", err)
-	}
-
-	r.logger.WithFields(logrus.Fields{
-		"video_id":    message.VideoID,
-		"signed_url":  message.SignedURL,
-		"object_name": message.ObjectName,
-		"expires_at":  message.ExpiresAt,
-		"queue":       r.queueName,
-	}).Info("Enhanced video processing message published to RabbitMQ successfully")
-
-	return nil
-}
-
-// HealthCheck performs a health check on the RabbitMQ service
-func (r *RabbitMQService) HealthCheck(ctx context.Context) error {
-	// Check if connection is alive
-	if r.connection == nil || r.connection.IsClosed() {
-		return fmt.Errorf("RabbitMQ connection is closed")
-	}
-
-	// Check if channel is alive
-	if r.channel == nil || r.channel.IsClosed() {
-		return fmt.Errorf("RabbitMQ channel is closed")
-	}
-
-	// Use passive queue declaration as health check (replaces deprecated QueueInspect)
-	_, err := r.channel.QueueDeclarePassive(
-		r.queueName, // name
+// declareQueue declares the queue for video processing
+func (s *RabbitMQService) declareQueue() error {
+	_, err := s.channel.QueueDeclare(
+		s.queueName, // name
 		true,        // durable
 		false,       // delete when unused
 		false,       // exclusive
@@ -203,79 +97,154 @@ func (r *RabbitMQService) HealthCheck(ctx context.Context) error {
 		nil,         // arguments
 	)
 	if err != nil {
-		r.logger.WithError(err).Warn("RabbitMQ health check failed")
-		return fmt.Errorf("RabbitMQ health check failed: %w", err)
+		return fmt.Errorf("failed to declare queue %s: %w", s.queueName, err)
 	}
+
+	s.logger.WithField("queue", s.queueName).Info("Queue declared successfully")
+	return nil
+}
+
+// PublishVideoProcessingMessage publishes a message to trigger video processing
+func (s *RabbitMQService) PublishVideoProcessingMessage(ctx context.Context, videoID, objectID string) error {
+	// Create the message payload
+	payload := models.CreateVideoPaylodRabbitmq{
+		VideoID:  videoID,
+		ObjectId: objectID,
+	}
+
+	// Marshal to JSON
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %w", err)
+	}
+
+	// Publish the message
+	err = s.channel.PublishWithContext(
+		ctx,
+		"",           // exchange
+		s.queueName,  // routing key
+		false,        // mandatory
+		false,        // immediate
+		amqp.Publishing{
+			ContentType:  "application/json",
+			Body:         body,
+			DeliveryMode: amqp.Persistent, // Make message persistent
+			Timestamp:    time.Now(),
+			MessageId:    fmt.Sprintf("%s-%d", videoID, time.Now().UnixNano()),
+		},
+	)
+	if err != nil {
+		s.logger.WithFields(logrus.Fields{
+			"video_id":  videoID,
+			"object_id": objectID,
+			"queue":     s.queueName,
+			"error":     err.Error(),
+		}).Error("Failed to publish video processing message")
+		return fmt.Errorf("failed to publish message: %w", err)
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"video_id":  videoID,
+		"object_id": objectID,
+		"queue":     s.queueName,
+	}).Info("Successfully published video processing message")
 
 	return nil
 }
 
-// Reconnect attempts to reconnect to RabbitMQ
-func (r *RabbitMQService) Reconnect() error {
-	r.logger.Info("Attempting to reconnect to RabbitMQ")
-
-	// Close existing connections
-	if r.channel != nil && !r.channel.IsClosed() {
-		r.channel.Close()
-	}
-	if r.connection != nil && !r.connection.IsClosed() {
-		r.connection.Close()
+// HealthCheck checks RabbitMQ connectivity
+func (s *RabbitMQService) HealthCheck(ctx context.Context) error {
+	if s.connection == nil || s.connection.IsClosed() {
+		return fmt.Errorf("RabbitMQ connection is closed")
 	}
 
-	// Reconnect
-	conn, err := amqp.Dial(r.url)
+	if s.channel == nil || s.channel.IsClosed() {
+		return fmt.Errorf("RabbitMQ channel is closed")
+	}
+
+	// Try to declare a temporary queue to test connectivity
+	tempQueueName := fmt.Sprintf("health-check-%d", time.Now().UnixNano())
+	_, err := s.channel.QueueDeclare(
+		tempQueueName,
+		false, // not durable
+		true,  // delete when unused
+		true,  // exclusive
+		false, // no-wait
+		nil,   // arguments
+	)
 	if err != nil {
-		return fmt.Errorf("failed to reconnect to RabbitMQ: %w", err)
+		return fmt.Errorf("RabbitMQ health check failed: %w", err)
 	}
 
-	ch, err := conn.Channel()
+	// Clean up the temporary queue
+	_, err = s.channel.QueueDelete(tempQueueName, false, false, false)
 	if err != nil {
-		conn.Close()
-		return fmt.Errorf("failed to create RabbitMQ channel on reconnect: %w", err)
+		s.logger.WithField("queue", tempQueueName).Warn("Failed to delete temporary health check queue")
 	}
 
-	r.connection = conn
-	r.channel = ch
-
-	// Ensure queue exists after reconnection
-	if err := r.ensureQueueExists(); err != nil {
-		return fmt.Errorf("failed to ensure queue exists after reconnect: %w", err)
-	}
-
-	r.logger.Info("Successfully reconnected to RabbitMQ")
 	return nil
 }
 
 // Close closes the RabbitMQ connection and channel
-func (r *RabbitMQService) Close() error {
+func (s *RabbitMQService) Close() error {
 	var errs []error
 
-	if r.channel != nil && !r.channel.IsClosed() {
-		if err := r.channel.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("failed to close RabbitMQ channel: %w", err))
+	if s.channel != nil && !s.channel.IsClosed() {
+		if err := s.channel.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("failed to close channel: %w", err))
 		}
 	}
 
-	if r.connection != nil && !r.connection.IsClosed() {
-		if err := r.connection.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("failed to close RabbitMQ connection: %w", err))
+	if s.connection != nil && !s.connection.IsClosed() {
+		if err := s.connection.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("failed to close connection: %w", err))
 		}
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("errors closing RabbitMQ service: %v", errs)
+		return fmt.Errorf("errors closing RabbitMQ: %v", errs)
 	}
 
-	r.logger.Info("RabbitMQ service closed successfully")
+	s.logger.Info("RabbitMQ service closed successfully")
+	return nil
+}
+
+// Reconnect attempts to reconnect to RabbitMQ
+func (s *RabbitMQService) Reconnect(cfg *config.Config) error {
+	s.logger.Info("Attempting to reconnect to RabbitMQ...")
+
+	// Close existing connections
+	s.Close()
+
+	// Reconnect
+	conn, err := connectWithRetry(cfg.RabbitMQ.URL, s.logger)
+	if err != nil {
+		return fmt.Errorf("failed to reconnect to RabbitMQ: %w", err)
+	}
+
+	// Create new channel
+	ch, err := conn.Channel()
+	if err != nil {
+		conn.Close()
+		return fmt.Errorf("failed to create new channel: %w", err)
+	}
+
+	// Update service
+	s.connection = conn
+	s.channel = ch
+
+	// Redeclare queue
+	if err := s.declareQueue(); err != nil {
+		return fmt.Errorf("failed to redeclare queue: %w", err)
+	}
+
+	s.logger.Info("Successfully reconnected to RabbitMQ")
 	return nil
 }
 
 // maskPassword masks the password in the RabbitMQ URL for logging
 func maskPassword(url string) string {
-	// Simple password masking for logging - replace password with ***
-	// Find the password part and replace it
 	if len(url) > 0 && url != "" {
-		// Basic masking - replace everything between :// and @ with masked credentials
 		return "amqp://***:***@rabbitmq:5672/vidflow"
 	}
 	return url

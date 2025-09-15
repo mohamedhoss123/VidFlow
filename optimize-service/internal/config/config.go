@@ -26,9 +26,9 @@ type Config struct {
 	RabbitMQQueue string
 
 	// Processing Configuration
-	WorkingDir      string
-	MaxConcurrency  int
-	ProcessTimeout  int64 // in seconds
+	WorkingDir     string
+	MaxConcurrency int
+	ProcessTimeout int64 // in seconds
 }
 
 // Load loads configuration from environment variables with defaults
@@ -43,19 +43,14 @@ func Load() *Config {
 		MinIOBucketName: getEnv("MINIO_BUCKET_NAME", "videos"),
 		MinIOUseSSL:     getEnvAsBool("MINIO_USE_SSL", false),
 
-		// MinIO Signed URL Configuration
-		SignedURLDownloadExpiry: getEnvAsInt64("SIGNED_URL_DOWNLOAD_EXPIRY", 3600),  // 1 hour default
-		SignedURLUploadExpiry:   getEnvAsInt64("SIGNED_URL_UPLOAD_EXPIRY", 900),    // 15 minutes default
-		SignedURLProcessExpiry:  getEnvAsInt64("SIGNED_URL_PROCESS_EXPIRY", 14400), // 4 hours default
-
 		// RabbitMQ Configuration
 		RabbitMQURL:   getEnv("RABBITMQ_URL", "amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow"),
 		RabbitMQQueue: getEnv("RABBITMQ_QUEUE", "video.quality.processing"),
 
 		// Processing Configuration
-		WorkingDir:      getEnv("WORKING_DIR", "./video"),
-		MaxConcurrency:  getEnvAsInt("MAX_CONCURRENCY", 2),
-		ProcessTimeout:  getEnvAsInt64("PROCESS_TIMEOUT", 3600), // 1 hour default
+		WorkingDir:     getEnv("WORKING_DIR", "./video"),
+		MaxConcurrency: getEnvAsInt("MAX_CONCURRENCY", 2),
+		ProcessTimeout: getEnvAsInt64("PROCESS_TIMEOUT", 3600), // 1 hour default
 	}
 }
 

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package thumbnail;
+option go_package = "proto/thumbnail";
+
+message UploadThumbnailRequest {
+    string video_id = 1;
+    string thumbnail_object_id = 2;
+    string original_filename = 3;
+    int64 file_size = 4;
+    string content_type = 5;
+}
+
+message UploadThumbnailResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message GetThumbnailRequest {
+    string video_id = 1;
+}
+
+message GetThumbnailResponse {
+    string video_id = 1;
+    string thumbnail_object_id = 2;
+    string thumbnail_url = 3;
+    bool has_thumbnail = 4;
+}
+
+service ThumbnailService {
+    rpc UploadThumbnail (UploadThumbnailRequest) returns (UploadThumbnailResponse) {}
+    rpc GetThumbnail (GetThumbnailRequest) returns (GetThumbnailResponse) {}
+}

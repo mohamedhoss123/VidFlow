@@ -6,14 +6,16 @@
   "main": "index.js",
   "scripts": {
     "generate": "openapi-merge-cli",
-    "preview":"openapi swagger-ui ./output.swagger.json"
+    "preview": "node main.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.12.4",
   "dependencies": {
+    "express": "^5.1.0",
     "openapi-merge-cli": "^1.3.2",
-    "openapicmd": "^2.7.0"
+    "openapicmd": "^2.7.0",
+    "swagger-ui-express": "^5.0.1"
   }
 }

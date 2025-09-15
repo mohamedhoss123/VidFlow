@@ -1,95 +1,170 @@
 package config
 
 import (
+	"log"
 	"os"
-	"strconv"
-	"strings"
+
+	"github.com/spf13/viper"
 )
 
 // Config holds all configuration for the upload service
 type Config struct {
-	HTTPPort            string
-	GRPCMainServiceAddr string
-	MaxFileSize         int64
-	AllowedFileTypes    []string
-	UploadDir           string
-	LogLevel            string
+	// Server configuration
+	Server ServerConfig `mapstructure:"server"`
 
-	// MinIO Configuration
-	MinIOEndpoint   string
-	MinIOAccessKey  string
-	MinIOSecretKey  string
-	MinIOBucketName string
-	MinIOUseSSL     bool
+	// MinIO configuration
+	MinIO MinIOConfig `mapstructure:"minio"`
 
-	// MinIO Signed URL Configuration
-	SignedURLDownloadExpiry int64 // in seconds
-	SignedURLUploadExpiry   int64 // in seconds
-	SignedURLProcessExpiry  int64 // in seconds for video processing
+	// RabbitMQ configuration
+	RabbitMQ RabbitMQConfig `mapstructure:"rabbitmq"`
 
-	// RabbitMQ Configuration
-	RabbitMQURL   string
-	RabbitMQQueue string
+	// gRPC configuration
+	GRPC GRPCConfig `mapstructure:"grpc"`
+
+	// Logging configuration
+	Log LogConfig `mapstructure:"log"`
+
+	// Upload configuration
+	Upload UploadConfig `mapstructure:"upload"`
 }
 
-// Load loads configuration from environment variables with defaults
+type ServerConfig struct {
+	Host string `mapstructure:"host"`
+	Port string `mapstructure:"port"`
+}
+
+type MinIOConfig struct {
+	Endpoint   string `mapstructure:"endpoint"`
+	AccessKey  string `mapstructure:"access_key"`
+	SecretKey  string `mapstructure:"secret_key"`
+	BucketName string `mapstructure:"bucket_name"`
+	UseSSL     bool   `mapstructure:"use_ssl"`
+	Region     string `mapstructure:"region"`
+}
+
+type RabbitMQConfig struct {
+	URL   string `mapstructure:"url"`
+	Queue string `mapstructure:"queue"`
+}
+
+type GRPCConfig struct {
+	MainServiceAddress string `mapstructure:"main_service_address"`
+	Timeout            int    `mapstructure:"timeout"`
+}
+
+type LogConfig struct {
+	Level  string `mapstructure:"level"`
+	Format string `mapstructure:"format"`
+}
+
+type UploadConfig struct {
+	MaxFileSize           int64    `mapstructure:"max_file_size"`
+	AllowedTypes          []string `mapstructure:"allowed_types"`
+	TempDir               string   `mapstructure:"temp_dir"`
+	MaxThumbnailSize      int64    `mapstructure:"max_thumbnail_size"`
+	AllowedThumbnailTypes []string `mapstructure:"allowed_thumbnail_types"`
+}
+
+// Load loads configuration from environment variables and config files
 func Load() *Config {
-	return &Config{
-		HTTPPort:            getEnv("HTTP_PORT", "8081"),
-		GRPCMainServiceAddr: getEnv("GRPC_MAIN_SERVICE_ADDR", "main-service:50051"),
-		MaxFileSize:         getEnvAsInt64("MAX_FILE_SIZE", 500*1024*1024), // 500MB default
-		AllowedFileTypes:    getEnvAsSlice("ALLOWED_FILE_TYPES", "video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm,video/mkv"),
-		UploadDir:           getEnv("UPLOAD_DIR", "/tmp/uploads"),
-		LogLevel:            getEnv("LOG_LEVEL", "info"),
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("./config")
 
-		// MinIO Configuration
-		MinIOEndpoint:   getEnv("MINIO_ENDPOINT", "minio:9000"),
-		MinIOAccessKey:  getEnv("MINIO_ACCESS_KEY", "vidflow_admin"),
-		MinIOSecretKey:  getEnv("MINIO_SECRET_KEY", "VidFlow_MinIO_2024!"),
-		MinIOBucketName: getEnv("MINIO_BUCKET_NAME", "videos"),
-		MinIOUseSSL:     getEnvAsBool("MINIO_USE_SSL", false),
+	// Set default values
+	setDefaults()
 
-		// MinIO Signed URL Configuration
-		SignedURLDownloadExpiry: getEnvAsInt64("SIGNED_URL_DOWNLOAD_EXPIRY", 3600), // 1 hour default
-		SignedURLUploadExpiry:   getEnvAsInt64("SIGNED_URL_UPLOAD_EXPIRY", 900),    // 15 minutes default
-		SignedURLProcessExpiry:  getEnvAsInt64("SIGNED_URL_PROCESS_EXPIRY", 14400), // 4 hours default
+	// Read from environment variables
+	viper.AutomaticEnv()
 
-		// RabbitMQ Configuration
-		RabbitMQURL:   getEnv("RABBITMQ_URL", "amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@rabbitmq:5672/vidflow"),
-		RabbitMQQueue: getEnv("RABBITMQ_QUEUE", "video.quality.processing"),
+	// Try to read config file (optional)
+	if err := viper.ReadInConfig(); err != nil {
+		log.Printf("Warning: Could not read config file: %v", err)
 	}
+
+	var config Config
+	if err := viper.Unmarshal(&config); err != nil {
+		log.Fatalf("Unable to decode config: %v", err)
+	}
+
+	// Override with environment variables
+	overrideWithEnv(&config)
+
+	return &config
 }
 
-// getEnv gets an environment variable with a default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
+func setDefaults() {
+	// Server defaults
+	viper.SetDefault("server.host", "0.0.0.0")
+	viper.SetDefault("server.port", "8081")
+
+	// MinIO defaults
+	viper.SetDefault("minio.endpoint", "localhost:9000")
+	viper.SetDefault("minio.access_key", "vidflow_admin")
+	viper.SetDefault("minio.secret_key", "VidFlow_MinIO_2024!")
+	viper.SetDefault("minio.bucket_name", "videos")
+	viper.SetDefault("minio.use_ssl", false)
+	viper.SetDefault("minio.region", "us-east-1")
+
+	// RabbitMQ defaults
+	viper.SetDefault("rabbitmq.url", "amqp://vidflow_admin:VidFlow_RabbitMQ_2025!@localhost:5672/vidflow")
+	viper.SetDefault("rabbitmq.queue", "video.quality.processing")
+
+	// gRPC defaults
+	viper.SetDefault("grpc.main_service_address", "localhost:50051")
+	viper.SetDefault("grpc.timeout", 30)
+
+	// Log defaults
+	viper.SetDefault("log.level", "info")
+	viper.SetDefault("log.format", "json")
+
+	// Upload defaults
+	viper.SetDefault("upload.max_file_size", 1073741824) // 1GB
+	viper.SetDefault("upload.allowed_types", []string{"video/mp4", "video/avi", "video/mov", "video/wmv", "video/flv", "video/webm", "video/mkv"})
+	viper.SetDefault("upload.temp_dir", "/tmp/uploads")
+	viper.SetDefault("upload.max_thumbnail_size", 5242880) // 5MB
+	viper.SetDefault("upload.allowed_thumbnail_types", []string{"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"})
 }
 
-// getEnvAsInt64 gets an environment variable as int64 with a default value
-func getEnvAsInt64(key string, defaultValue int64) int64 {
-	if value := os.Getenv(key); value != "" {
-		if intValue, err := strconv.ParseInt(value, 10, 64); err == nil {
-			return intValue
-		}
+func overrideWithEnv(config *Config) {
+	// Server
+	if host := os.Getenv("SERVER_HOST"); host != "" {
+		config.Server.Host = host
 	}
-	return defaultValue
-}
-
-// getEnvAsSlice gets an environment variable as a slice with a default value
-func getEnvAsSlice(key, defaultValue string) []string {
-	value := getEnv(key, defaultValue)
-	return strings.Split(value, ",")
-}
-
-// getEnvAsBool gets an environment variable as bool with a default value
-func getEnvAsBool(key string, defaultValue bool) bool {
-	if value := os.Getenv(key); value != "" {
-		if boolValue, err := strconv.ParseBool(value); err == nil {
-			return boolValue
-		}
+	if port := os.Getenv("SERVER_PORT"); port != "" {
+		config.Server.Port = port
 	}
-	return defaultValue
+
+	// MinIO
+	if endpoint := os.Getenv("MINIO_ENDPOINT"); endpoint != "" {
+		config.MinIO.Endpoint = endpoint
+	}
+	if accessKey := os.Getenv("MINIO_ACCESS_KEY"); accessKey != "" {
+		config.MinIO.AccessKey = accessKey
+	}
+	if secretKey := os.Getenv("MINIO_SECRET_KEY"); secretKey != "" {
+		config.MinIO.SecretKey = secretKey
+	}
+	if bucketName := os.Getenv("MINIO_BUCKET_NAME"); bucketName != "" {
+		config.MinIO.BucketName = bucketName
+	}
+
+	// RabbitMQ
+	if url := os.Getenv("RABBITMQ_URL"); url != "" {
+		config.RabbitMQ.URL = url
+	}
+	if queue := os.Getenv("RABBITMQ_QUEUE"); queue != "" {
+		config.RabbitMQ.Queue = queue
+	}
+
+	// gRPC
+	if addr := os.Getenv("GRPC_MAIN_SERVICE_ADDRESS"); addr != "" {
+		config.GRPC.MainServiceAddress = addr
+	}
+
+	// Log
+	if level := os.Getenv("LOG_LEVEL"); level != "" {
+		config.Log.Level = level
+	}
 }

@@ -1,0 +1,458 @@
+basePath: /
+definitions:
+  docs.BadRequestError:
+    properties:
+      code:
+        example: 400
+        type: integer
+      error:
+        example: Bad Request
+        type: string
+      message:
+        example: Invalid request parameters or missing required fields
+        type: string
+    type: object
+  docs.InternalServerError:
+    properties:
+      code:
+        example: 500
+        type: integer
+      error:
+        example: Internal Server Error
+        type: string
+      message:
+        example: An unexpected error occurred while processing your request
+        type: string
+    type: object
+  docs.LivenessResponse:
+    properties:
+      status:
+        example: alive
+        type: string
+      timestamp:
+        type: string
+    type: object
+  docs.NotFoundError:
+    properties:
+      code:
+        example: 404
+        type: integer
+      error:
+        example: Not Found
+        type: string
+      message:
+        example: Video not found or does not exist
+        type: string
+    type: object
+  docs.ReadinessResponse:
+    properties:
+      ready:
+        example: true
+        type: boolean
+      services:
+        additionalProperties:
+          type: boolean
+        type: object
+      timestamp:
+        type: string
+    type: object
+  docs.RequestEntityTooLargeError:
+    properties:
+      code:
+        example: 413
+        type: integer
+      error:
+        example: Request Entity Too Large
+        type: string
+      message:
+        example: File size exceeds maximum allowed limit of 500MB
+        type: string
+    type: object
+  docs.ServiceUnavailableError:
+    properties:
+      code:
+        example: 503
+        type: integer
+      error:
+        example: Service Unavailable
+        type: string
+      message:
+        example: Service is temporarily unavailable. Please try again later
+        type: string
+    type: object
+  docs.ThumbnailStatusResponse:
+    properties:
+      created_at:
+        type: string
+      message:
+        example: Thumbnail uploaded successfully
+        type: string
+      status:
+        example: uploaded
+        type: string
+      thumbnail_id:
+        example: thumb_123e4567-e89b-12d3-a456-426614174000
+        type: string
+      video_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
+  docs.TooManyRequestsError:
+    properties:
+      code:
+        example: 429
+        type: integer
+      error:
+        example: Too Many Requests
+        type: string
+      message:
+        example: Rate limit exceeded. Please try again later
+        type: string
+    type: object
+  docs.UnauthorizedError:
+    properties:
+      code:
+        example: 401
+        type: integer
+      error:
+        example: Unauthorized
+        type: string
+      message:
+        example: Missing or invalid x-user-id header
+        type: string
+    type: object
+  docs.UploadLimitsResponse:
+    properties:
+      allowed_types:
+        items:
+          type: string
+        type: array
+      max_file_size:
+        example: 1073741824
+        type: integer
+      max_file_size_mb:
+        example: 1024
+        type: integer
+    type: object
+  docs.UploadStatusResponse:
+    properties:
+      message:
+        example: Video is being processed
+        type: string
+      status:
+        example: processing
+        type: string
+      video_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
+  upload-service_internal_models.HealthResponse:
+    properties:
+      services:
+        additionalProperties:
+          type: string
+        type: object
+      status:
+        example: healthy
+        type: string
+      timestamp:
+        example: "2024-01-01T12:00:00Z"
+        type: string
+    type: object
+  upload-service_internal_models.ThumbnailUploadResponse:
+    properties:
+      created_at:
+        example: "2024-01-01T12:00:00Z"
+        type: string
+      message:
+        example: Thumbnail uploaded successfully
+        type: string
+      object_id:
+        example: thumbnails/123e4567-e89b-12d3-a456-426614174000.jpg
+        type: string
+      video_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
+  upload-service_internal_models.UploadResponse:
+    properties:
+      created_at:
+        example: "2024-01-01T12:00:00Z"
+        type: string
+      message:
+        example: Video uploaded successfully and processing started
+        type: string
+      object_id:
+        example: videos/123e4567-e89b-12d3-a456-426614174000.mp4
+        type: string
+      status:
+        example: processing
+        type: string
+      video_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
+host: localhost:8081
+info:
+  contact:
+    email: support@vidflow.com
+    name: VidFlow API Support
+  description: Upload service for VidFlow video platform. Handles video and thumbnail
+    uploads to MinIO storage with gRPC communication to main service and RabbitMQ
+    for async processing.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: VidFlow Upload Service API
+  version: 1.0.0
+paths:
+  /api/upload/limits:
+    get:
+      consumes:
+      - application/json
+      description: Get the maximum file size and allowed file types for video uploads
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/docs.UploadLimitsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/docs.InternalServerError'
+      summary: Get upload limits
+      tags:
+      - Upload
+  /api/upload/status/{video_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get the current status of a video upload by video ID
+      parameters:
+      - description: Video ID
+        in: path
+        name: video_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/docs.UploadStatusResponse'
+        "400":
+          description: Bad Request - Invalid video ID format
+          schema:
+            $ref: '#/definitions/docs.BadRequestError'
+        "404":
+          description: Not Found - Video not found
+          schema:
+            $ref: '#/definitions/docs.NotFoundError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/docs.InternalServerError'
+      summary: Get upload status
+      tags:
+      - Upload
+  /api/upload/thumbnail:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a thumbnail image for a video to MinIO storage
+      parameters:
+      - description: Thumbnail image file to upload
+        in: formData
+        name: thumbnail
+        required: true
+        type: file
+      - description: Video ID to associate thumbnail with
+        in: formData
+        name: video_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/upload-service_internal_models.ThumbnailUploadResponse'
+        "400":
+          description: Bad Request - Invalid request parameters
+          schema:
+            $ref: '#/definitions/docs.BadRequestError'
+        "413":
+          description: Request Entity Too Large - File size exceeds limit
+          schema:
+            $ref: '#/definitions/docs.RequestEntityTooLargeError'
+        "429":
+          description: Too Many Requests - Rate limit exceeded
+          schema:
+            $ref: '#/definitions/docs.TooManyRequestsError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/docs.InternalServerError'
+      summary: Upload a thumbnail image
+      tags:
+      - Thumbnail
+  /api/upload/thumbnail/{video_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get the current status and information of a video's thumbnail
+      parameters:
+      - description: Video ID
+        in: path
+        name: video_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/docs.ThumbnailStatusResponse'
+        "400":
+          description: Bad Request - Invalid video ID format
+          schema:
+            $ref: '#/definitions/docs.BadRequestError'
+        "404":
+          description: Not Found - Thumbnail not found
+          schema:
+            $ref: '#/definitions/docs.NotFoundError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/docs.InternalServerError'
+      summary: Get thumbnail status
+      tags:
+      - Thumbnail
+  /api/upload/video:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a video file to MinIO storage and create video record via
+        gRPC
+      parameters:
+      - description: User ID for authentication
+        in: header
+        name: x-user-id
+        required: true
+        type: string
+      - description: Video file to upload
+        in: formData
+        name: video
+        required: true
+        type: file
+      - description: Video name (optional, defaults to filename)
+        in: formData
+        name: name
+        type: string
+      - description: Video description (optional)
+        in: formData
+        name: description
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/upload-service_internal_models.UploadResponse'
+        "400":
+          description: Bad Request - Invalid request parameters
+          schema:
+            $ref: '#/definitions/docs.BadRequestError'
+        "401":
+          description: Unauthorized - Missing x-user-id header
+          schema:
+            $ref: '#/definitions/docs.UnauthorizedError'
+        "413":
+          description: Request Entity Too Large - File size exceeds limit
+          schema:
+            $ref: '#/definitions/docs.RequestEntityTooLargeError'
+        "429":
+          description: Too Many Requests - Rate limit exceeded
+          schema:
+            $ref: '#/definitions/docs.TooManyRequestsError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/docs.InternalServerError'
+      security:
+      - ApiKeyAuth: []
+      summary: Upload a video file
+      tags:
+      - Upload
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Performs health checks on all dependent services (MinIO, gRPC,
+        RabbitMQ)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/upload-service_internal_models.HealthResponse'
+        "503":
+          description: Service Unavailable - One or more dependencies are unhealthy
+          schema:
+            $ref: '#/definitions/docs.ServiceUnavailableError'
+      summary: Comprehensive health check
+      tags:
+      - Health
+  /health/live:
+    get:
+      consumes:
+      - application/json
+      description: Simple liveness check to verify the service is alive
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/docs.LivenessResponse'
+      summary: Liveness probe
+      tags:
+      - Health
+  /health/ready:
+    get:
+      consumes:
+      - application/json
+      description: Checks if the service is ready to accept requests by verifying
+        critical dependencies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/docs.ReadinessResponse'
+        "503":
+          description: Service Unavailable - Critical dependencies are not ready
+          schema:
+            $ref: '#/definitions/docs.ServiceUnavailableError'
+      summary: Readiness probe
+      tags:
+      - Health
+schemes:
+- http
+- https
+securityDefinitions:
+  ApiKeyAuth:
+    description: User ID for authentication
+    in: header
+    name: x-user-id
+    type: apiKey
+swagger: "2.0"

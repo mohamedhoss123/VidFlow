@@ -1,25 +1,28 @@
 # Node.js development environment
 FROM node:22-alpine3.20
 
-# Install pnpm
+# Install pnpm globally
 RUN npm install -g pnpm
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
+# Install dependencies (this layer will be cached if package files don't change)
 RUN pnpm install
 
-# Copy source code
+# Copy and setup startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Copy source code (this will be overridden by volume mount in development)
 COPY . .
 
-# Generate Prisma client
-RUN pnpm prisma generate
-
+# Expose ports
+EXPOSE 3000 50051
 
 # Start development server
-CMD ["pnpm", "run", "start:dev"]
+CMD ["sh", "/app/start.sh"]
 

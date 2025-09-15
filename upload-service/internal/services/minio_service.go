@@ -3,46 +3,42 @@ package services
 import (
 	"context"
 	"fmt"
-	"mime/multipart"
-	"net/url"
+	"io"
 	"path/filepath"
+	"strings"
 	"time"
+	"upload-service/internal/config"
+	"upload-service/internal/models"
 
-	"vidflow/upload-service/internal/config"
-
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/sirupsen/logrus"
 )
 
-// MinIOService handles MinIO object storage operations
+// MinIOService handles MinIO operations
 type MinIOService struct {
 	client     *minio.Client
 	bucketName string
 	logger     *logrus.Logger
-	endpoint   string
-	useSSL     bool
-	config     *config.Config
 }
 
 // NewMinIOService creates a new MinIO service instance
 func NewMinIOService(cfg *config.Config, logger *logrus.Logger) (*MinIOService, error) {
 	// Initialize MinIO client
-	client, err := minio.New(cfg.MinIOEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(cfg.MinIOAccessKey, cfg.MinIOSecretKey, ""),
-		Secure: cfg.MinIOUseSSL,
+	client, err := minio.New(cfg.MinIO.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.MinIO.AccessKey, cfg.MinIO.SecretKey, ""),
+		Secure: cfg.MinIO.UseSSL,
+		Region: cfg.MinIO.Region,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize MinIO client: %w", err)
+		return nil, fmt.Errorf("failed to create MinIO client: %w", err)
 	}
 
 	service := &MinIOService{
 		client:     client,
-		bucketName: cfg.MinIOBucketName,
+		bucketName: cfg.MinIO.BucketName,
 		logger:     logger,
-		endpoint:   cfg.MinIOEndpoint,
-		useSSL:     cfg.MinIOUseSSL,
-		config:     cfg,
 	}
 
 	// Ensure bucket exists
@@ -51,248 +47,237 @@ func NewMinIOService(cfg *config.Config, logger *logrus.Logger) (*MinIOService, 
 	}
 
 	logger.WithFields(logrus.Fields{
-		"endpoint": cfg.MinIOEndpoint,
-		"bucket":   cfg.MinIOBucketName,
-		"ssl":      cfg.MinIOUseSSL,
+		"endpoint": cfg.MinIO.Endpoint,
+		"bucket":   cfg.MinIO.BucketName,
+		"ssl":      cfg.MinIO.UseSSL,
 	}).Info("MinIO service initialized successfully")
 
 	return service, nil
 }
 
 // ensureBucketExists creates the bucket if it doesn't exist
-func (m *MinIOService) ensureBucketExists(ctx context.Context) error {
-	exists, err := m.client.BucketExists(ctx, m.bucketName)
+func (s *MinIOService) ensureBucketExists(ctx context.Context) error {
+	exists, err := s.client.BucketExists(ctx, s.bucketName)
 	if err != nil {
-		return fmt.Errorf("failed to check bucket existence: %w", err)
+		return fmt.Errorf("failed to check if bucket exists: %w", err)
 	}
 
 	if !exists {
-		err = m.client.MakeBucket(ctx, m.bucketName, minio.MakeBucketOptions{
+		err = s.client.MakeBucket(ctx, s.bucketName, minio.MakeBucketOptions{
 			Region: "us-east-1",
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create bucket: %w", err)
 		}
-		m.logger.WithField("bucket", m.bucketName).Info("Created MinIO bucket")
+		s.logger.WithField("bucket", s.bucketName).Info("Created MinIO bucket")
 	}
 
 	return nil
 }
 
-// UploadFile uploads a file to MinIO and returns the file URL
-func (m *MinIOService) UploadFile(ctx context.Context, file multipart.File, fileHeader *multipart.FileHeader, objectName string) (string, error) {
-	// Set timeout for upload operation
-	uploadCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
-	defer cancel()
+// UploadVideo uploads a video file to MinIO
+func (s *MinIOService) UploadVideo(ctx context.Context, reader io.Reader, fileInfo *models.FileInfo) (string, error) {
+	// Generate unique object ID
+	objectID := s.generateObjectID(fileInfo.OriginalName)
 
-	// Determine content type
-	contentType := fileHeader.Header.Get("Content-Type")
+	// Set content type
+	contentType := fileInfo.ContentType
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 
-	// Get file size
-	fileSize := fileHeader.Size
-
-	m.logger.WithFields(logrus.Fields{
-		"object_name":  objectName,
-		"content_type": contentType,
-		"file_size":    fileSize,
-		"bucket":       m.bucketName,
-	}).Info("Starting file upload to MinIO")
-
-	// Upload file using PutObject
-	uploadInfo, err := m.client.PutObject(uploadCtx, m.bucketName, objectName, file, fileSize, minio.PutObjectOptions{
+	// Upload options
+	uploadOptions := minio.PutObjectOptions{
 		ContentType: contentType,
 		UserMetadata: map[string]string{
-			"original-filename": fileHeader.Filename,
-			"upload-timestamp":  time.Now().UTC().Format(time.RFC3339),
+			"original-name": fileInfo.OriginalName,
+			"file-size":     fmt.Sprintf("%d", fileInfo.Size),
+			"uploaded-at":   time.Now().UTC().Format(time.RFC3339),
 		},
-	})
-	if err != nil {
-		m.logger.WithError(err).WithFields(logrus.Fields{
-			"object_name": objectName,
-			"bucket":      m.bucketName,
-		}).Error("Failed to upload file to MinIO")
-		return "", fmt.Errorf("failed to upload file to MinIO: %w", err)
 	}
 
-	// Generate file URL
-	fileURL := m.generateFileURL(objectName)
+	// Upload the file
+	uploadInfo, err := s.client.PutObject(ctx, s.bucketName, objectID, reader, fileInfo.Size, uploadOptions)
+	if err != nil {
+		s.logger.WithFields(logrus.Fields{
+			"object_id": objectID,
+			"error":     err.Error(),
+		}).Error("Failed to upload video to MinIO")
+		return "", fmt.Errorf("failed to upload video: %w", err)
+	}
 
-	m.logger.WithFields(logrus.Fields{
-		"object_name": objectName,
-		"file_url":    fileURL,
-		"etag":        uploadInfo.ETag,
-		"size":        uploadInfo.Size,
-	}).Info("File uploaded to MinIO successfully")
+	s.logger.WithFields(logrus.Fields{
+		"object_id":     objectID,
+		"bucket":        s.bucketName,
+		"size":          uploadInfo.Size,
+		"etag":          uploadInfo.ETag,
+		"original_name": fileInfo.OriginalName,
+	}).Info("Successfully uploaded video to MinIO")
 
-	return fileURL, nil
+	return objectID, nil
 }
 
-// generateFileURL generates the URL for accessing the uploaded file
-func (m *MinIOService) generateFileURL(objectName string) string {
-	protocol := "http"
-	if m.useSSL {
-		protocol = "https"
+// GetVideoURL generates a presigned URL for video access
+func (s *MinIOService) GetVideoURL(ctx context.Context, objectID string, expiry time.Duration) (string, error) {
+	url, err := s.client.PresignedGetObject(ctx, s.bucketName, objectID, expiry, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
-	return fmt.Sprintf("%s://%s/%s/%s", protocol, m.endpoint, m.bucketName, objectName)
+	return url.String(), nil
 }
 
-// DeleteFile deletes a file from MinIO
-func (m *MinIOService) DeleteFile(ctx context.Context, objectName string) error {
-	deleteCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	err := m.client.RemoveObject(deleteCtx, m.bucketName, objectName, minio.RemoveObjectOptions{})
+// DeleteVideo deletes a video from MinIO
+func (s *MinIOService) DeleteVideo(ctx context.Context, objectID string) error {
+	err := s.client.RemoveObject(ctx, s.bucketName, objectID, minio.RemoveObjectOptions{})
 	if err != nil {
-		m.logger.WithError(err).WithFields(logrus.Fields{
-			"object_name": objectName,
-			"bucket":      m.bucketName,
-		}).Error("Failed to delete file from MinIO")
-		return fmt.Errorf("failed to delete file from MinIO: %w", err)
+		s.logger.WithFields(logrus.Fields{
+			"object_id": objectID,
+			"error":     err.Error(),
+		}).Error("Failed to delete video from MinIO")
+		return fmt.Errorf("failed to delete video: %w", err)
 	}
 
-	m.logger.WithFields(logrus.Fields{
-		"object_name": objectName,
-		"bucket":      m.bucketName,
-	}).Info("File deleted from MinIO successfully")
-
+	s.logger.WithField("object_id", objectID).Info("Successfully deleted video from MinIO")
 	return nil
 }
 
-// HealthCheck performs a health check on the MinIO service
-func (m *MinIOService) HealthCheck(ctx context.Context) error {
-	healthCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	// Check if bucket exists as a simple health check
-	_, err := m.client.BucketExists(healthCtx, m.bucketName)
+// GetVideoInfo retrieves video information from MinIO
+func (s *MinIOService) GetVideoInfo(ctx context.Context, objectID string) (*minio.ObjectInfo, error) {
+	info, err := s.client.StatObject(ctx, s.bucketName, objectID, minio.StatObjectOptions{})
 	if err != nil {
-		m.logger.WithError(err).Warn("MinIO health check failed")
+		return nil, fmt.Errorf("failed to get video info: %w", err)
+	}
+	return &info, nil
+}
+
+// HealthCheck checks MinIO connectivity
+func (s *MinIOService) HealthCheck(ctx context.Context) error {
+	// Try to list buckets to check connectivity
+	_, err := s.client.ListBuckets(ctx)
+	if err != nil {
 		return fmt.Errorf("MinIO health check failed: %w", err)
 	}
-
 	return nil
 }
 
-// GenerateObjectName generates a unique object name for the file
-func (m *MinIOService) GenerateObjectName(originalFilename, videoID string) string {
-	ext := filepath.Ext(originalFilename)
-	return fmt.Sprintf("%s%s", videoID, ext)
+// generateObjectID generates a unique object ID for the video
+func (s *MinIOService) generateObjectID(originalName string) string {
+	// Generate UUID
+	id := uuid.New().String()
+
+	// Get file extension
+	ext := filepath.Ext(originalName)
+	if ext == "" {
+		ext = ".mp4" // default extension
+	}
+
+	// Create object ID with timestamp and UUID
+	timestamp := time.Now().UTC().Format("2006/01/02")
+	objectID := fmt.Sprintf("videos/%s/%s%s", timestamp, id, strings.ToLower(ext))
+
+	return objectID
 }
 
-// GeneratePresignedGetURL generates a presigned URL for downloading an object
-func (m *MinIOService) GeneratePresignedGetURL(ctx context.Context, objectName string, expiry time.Duration) (*url.URL, error) {
-	if expiry <= 0 {
-		expiry = time.Duration(m.config.SignedURLDownloadExpiry) * time.Second
+// ListVideos lists videos in the bucket (for debugging/admin purposes)
+func (s *MinIOService) ListVideos(ctx context.Context, prefix string) ([]minio.ObjectInfo, error) {
+	var objects []minio.ObjectInfo
+
+	objectCh := s.client.ListObjects(ctx, s.bucketName, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+
+	for object := range objectCh {
+		if object.Err != nil {
+			return nil, fmt.Errorf("error listing objects: %w", object.Err)
+		}
+		objects = append(objects, object)
 	}
 
-	// Set request parameters for content-disposition if needed
-	reqParams := make(url.Values)
-
-	presignedURL, err := m.client.PresignedGetObject(ctx, m.bucketName, objectName, expiry, reqParams)
-	if err != nil {
-		m.logger.WithError(err).WithFields(logrus.Fields{
-			"object_name": objectName,
-			"bucket":      m.bucketName,
-			"expiry":      expiry,
-		}).Error("Failed to generate presigned GET URL")
-		return nil, fmt.Errorf("failed to generate presigned GET URL: %w", err)
-	}
-
-	m.logger.WithFields(logrus.Fields{
-		"object_name":   objectName,
-		"bucket":        m.bucketName,
-		"expiry":        expiry,
-		"presigned_url": presignedURL.String(),
-	}).Info("Generated presigned GET URL successfully")
-
-	return presignedURL, nil
+	return objects, nil
 }
 
-// GeneratePresignedPutURL generates a presigned URL for uploading an object
-func (m *MinIOService) GeneratePresignedPutURL(ctx context.Context, objectName string, expiry time.Duration) (*url.URL, error) {
-	if expiry <= 0 {
-		expiry = time.Duration(m.config.SignedURLUploadExpiry) * time.Second
+// UploadThumbnail uploads a thumbnail image to MinIO
+func (s *MinIOService) UploadThumbnail(ctx context.Context, reader io.Reader, fileInfo *models.FileInfo, videoID string) (string, error) {
+	// Generate object ID for thumbnail
+	objectID := s.generateThumbnailObjectID(videoID, fileInfo.OriginalName)
+
+	s.logger.WithFields(logrus.Fields{
+		"video_id":      videoID,
+		"object_id":     objectID,
+		"original_name": fileInfo.OriginalName,
+		"size":          fileInfo.Size,
+		"content_type":  fileInfo.ContentType,
+	}).Info("Starting thumbnail upload to MinIO")
+
+	// Set upload options
+	uploadOptions := minio.PutObjectOptions{
+		ContentType: fileInfo.ContentType,
+		UserMetadata: map[string]string{
+			"original-name": fileInfo.OriginalName,
+			"video-id":      videoID,
+			"upload-type":   "thumbnail",
+		},
 	}
 
-	presignedURL, err := m.client.PresignedPutObject(ctx, m.bucketName, objectName, expiry)
+	// Upload thumbnail to MinIO
+	uploadInfo, err := s.client.PutObject(ctx, s.bucketName, objectID, reader, fileInfo.Size, uploadOptions)
 	if err != nil {
-		m.logger.WithError(err).WithFields(logrus.Fields{
-			"object_name": objectName,
-			"bucket":      m.bucketName,
-			"expiry":      expiry,
-		}).Error("Failed to generate presigned PUT URL")
-		return nil, fmt.Errorf("failed to generate presigned PUT URL: %w", err)
+		s.logger.WithFields(logrus.Fields{
+			"object_id": objectID,
+			"video_id":  videoID,
+			"error":     err.Error(),
+		}).Error("Failed to upload thumbnail to MinIO")
+		return "", fmt.Errorf("failed to upload thumbnail: %w", err)
 	}
 
-	m.logger.WithFields(logrus.Fields{
-		"object_name":   objectName,
-		"bucket":        m.bucketName,
-		"expiry":        expiry,
-		"presigned_url": presignedURL.String(),
-	}).Info("Generated presigned PUT URL successfully")
+	s.logger.WithFields(logrus.Fields{
+		"object_id":     objectID,
+		"video_id":      videoID,
+		"bucket":        s.bucketName,
+		"size":          uploadInfo.Size,
+		"etag":          uploadInfo.ETag,
+		"original_name": fileInfo.OriginalName,
+	}).Info("Successfully uploaded thumbnail to MinIO")
 
-	return presignedURL, nil
+	return objectID, nil
 }
 
-// GeneratePresignedPostPolicy generates a presigned POST policy for browser uploads
-func (m *MinIOService) GeneratePresignedPostPolicy(ctx context.Context, objectName string, expiry time.Duration, maxFileSize int64) (*url.URL, map[string]string, error) {
-	if expiry <= 0 {
-		expiry = time.Duration(m.config.SignedURLUploadExpiry) * time.Second
-	}
-
-	// Initialize policy condition config
-	policy := minio.NewPostPolicy()
-
-	// Apply upload policy restrictions
-	policy.SetBucket(m.bucketName)
-	policy.SetKey(objectName)
-	policy.SetExpires(time.Now().UTC().Add(expiry))
-
-	// Set content length range if specified
-	if maxFileSize > 0 {
-		policy.SetContentLengthRange(1, maxFileSize)
-	}
-
-	// Get the POST form key/value object
-	presignedURL, formData, err := m.client.PresignedPostPolicy(ctx, policy)
+// DeleteThumbnail deletes a thumbnail from MinIO
+func (s *MinIOService) DeleteThumbnail(ctx context.Context, objectID string) error {
+	err := s.client.RemoveObject(ctx, s.bucketName, objectID, minio.RemoveObjectOptions{})
 	if err != nil {
-		m.logger.WithError(err).WithFields(logrus.Fields{
-			"object_name": objectName,
-			"bucket":      m.bucketName,
-			"expiry":      expiry,
-		}).Error("Failed to generate presigned POST policy")
-		return nil, nil, fmt.Errorf("failed to generate presigned POST policy: %w", err)
+		s.logger.WithFields(logrus.Fields{
+			"object_id": objectID,
+			"error":     err.Error(),
+		}).Error("Failed to delete thumbnail from MinIO")
+		return fmt.Errorf("failed to delete thumbnail: %w", err)
 	}
 
-	m.logger.WithFields(logrus.Fields{
-		"object_name":   objectName,
-		"bucket":        m.bucketName,
-		"expiry":        expiry,
-		"presigned_url": presignedURL.String(),
-	}).Info("Generated presigned POST policy successfully")
-
-	return presignedURL, formData, nil
+	s.logger.WithField("object_id", objectID).Info("Successfully deleted thumbnail from MinIO")
+	return nil
 }
 
-// UploadFileWithSignedURL uploads a file and returns both the upload info and signed download URL
-func (m *MinIOService) UploadFileWithSignedURL(ctx context.Context, file multipart.File, fileHeader *multipart.FileHeader, objectName string) (string, *url.URL, time.Time, error) {
-	// Upload the file first
-	_, err := m.UploadFile(ctx, file, fileHeader, objectName)
+// GetThumbnailURL generates a presigned URL for thumbnail access
+func (s *MinIOService) GetThumbnailURL(ctx context.Context, objectID string, expiry time.Duration) (string, error) {
+	url, err := s.client.PresignedGetObject(ctx, s.bucketName, objectID, expiry, nil)
 	if err != nil {
-		return "", nil, time.Time{}, err
+		return "", fmt.Errorf("failed to generate presigned URL for thumbnail: %w", err)
+	}
+	return url.String(), nil
+}
+
+// generateThumbnailObjectID generates a unique object ID for the thumbnail
+func (s *MinIOService) generateThumbnailObjectID(videoID, originalName string) string {
+	// Get file extension
+	ext := filepath.Ext(originalName)
+	if ext == "" {
+		ext = ".jpg" // default extension for thumbnails
 	}
 
-	// Generate signed download URL for processing (use longer expiry for video processing)
-	expiry := time.Duration(m.config.SignedURLProcessExpiry) * time.Second
-	signedURL, err := m.GeneratePresignedGetURL(ctx, objectName, expiry)
-	if err != nil {
-		return "", nil, time.Time{}, fmt.Errorf("failed to generate signed download URL: %w", err)
-	}
+	// Create object ID with video ID and timestamp
+	timestamp := time.Now().UTC().Format("2006/01/02")
+	objectID := fmt.Sprintf("thumbnails/%s/%s/%s%s", timestamp, videoID, uuid.New().String(), strings.ToLower(ext))
 
-	expiresAt := time.Now().UTC().Add(expiry)
-
-	return objectName, signedURL, expiresAt, nil
+	return objectID
 }

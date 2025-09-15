@@ -8,15 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum VideoQualityOptions {
-  p144
-  p240
-  p360
-  p480
-  p720
-  p1080
-}
-
 enum VideoVisibility {
   public
   private
@@ -34,7 +25,7 @@ model Users {
   name          String    @db.VarChar(255)
   email         String    @db.VarChar(255) @unique
   password      String    @db.VarChar(255)
-  created_at    DateTime  @db.Date
+  created_at    DateTime  @db.Date @default(now())
   videos        Video[]
   likes         Likes[]
   comments      Comments[]
@@ -47,38 +38,40 @@ model RefreshTokens{
   id String @id @unique @db.VarChar(255)
   user_id String @db.VarChar(255)
   user Users @relation(fields: [user_id], references: [id])
-  created_at DateTime @db.Date
-  expires_at DateTime @db.Date
+  created_at DateTime @db.Date @default(now())
+  expires_at DateTime @db.Date 
 }
 model Video {
-  id             String        @id @unique @db.VarChar(255)
-  name           String?       @db.VarChar(255)
-  description    String?       @db.VarChar(255)
-  user_id        String?       @db.VarChar(255)
-  user           Users?         @relation(fields: [user_id], references: [id])
-  likes_count    Int?
-  comments_count Int?
-  visibility     VideoVisibility?
-  status         VideoStatus?
-  created_at     DateTime?     @db.Date
-  qualities      VideoQuality[]
-  likes          Likes[]
-  comments       Comments[]
+  id                  String        @id @unique @db.VarChar(255)
+  name                String?       @db.VarChar(255)
+  description         String?       @db.VarChar(255)
+  user_id             String?       @db.VarChar(255)
+  user                Users?         @relation(fields: [user_id], references: [id])
+  likes_count         Int?
+  comments_count      Int?
+  visibility          VideoVisibility?
+  status              VideoStatus?
+  length              Int?
+  thumbnail_object_id String?       @db.VarChar(255)
+  created_at          DateTime     @db.Date @default(now())
+  qualities           VideoQuality[]
+  likes               Likes[]
+  comments            Comments[]
 }
 
 model VideoQuality {
   id         String        @id @unique @db.VarChar(255)
-  quality     VideoQualityOptions?
+  quality     String?
   video_id   String?       @db.VarChar(255)
   video      Video?        @relation(fields: [video_id], references: [id])
-  source     String?       @db.VarChar(255)
-  created_at DateTime?     @db.Date
+  objectId     String?       @db.VarChar(255)
+  created_at DateTime     @db.Date @default(now())
 }
 
 model Likes {
   user_id    String   @db.VarChar(255)
   video_id   String   @db.VarChar(255)
-  created_at DateTime? @db.Date
+  created_at DateTime @db.Date @default(now())
 
   user       Users    @relation(fields: [user_id], references: [id])
   video      Video    @relation(fields: [video_id], references: [id])
@@ -91,7 +84,7 @@ model Comments {
   content    String?   @db.VarChar(255)
   user_id    String?   @db.VarChar(255)
   video_id   String?   @db.VarChar(255)
-  created_at DateTime? @db.Date
+  created_at DateTime @db.Date @default(now())
 
   user       Users?     @relation(fields: [user_id], references: [id])
   video      Video?    @relation(fields: [video_id], references: [id])
@@ -101,7 +94,7 @@ model Subscription {
   id            Int      @id @default(autoincrement())
   follower_id   String?  @db.VarChar(255)
   following_id  String?  @db.VarChar(255)
-  created_at    DateTime? @db.Date
+  created_at    DateTime @db.Date @default(now())
 
   follower      Users?    @relation("FollowedBy", fields: [follower_id], references: [id])
   following     Users?    @relation("Following", fields: [following_id], references: [id])
@@ -113,7 +106,7 @@ model Notification {
   content    String?   @db.VarChar(255)
   received    Boolean?
   road       Boolean?
-  created_at DateTime? @db.Date
+  created_at DateTime @db.Date @default(now())
 
   user       Users?     @relation(fields: [user_id], references: [id])
 }
